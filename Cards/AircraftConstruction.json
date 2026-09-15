@@ -1,6 +1,7 @@
 {
   "title": "Aircraft Construction",
   "category": "ARFF",
+  "type": "ARFF",
   "klps": [
     {
       "number": "2.5.3.1",
