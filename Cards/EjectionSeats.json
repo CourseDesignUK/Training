@@ -1,6 +1,7 @@
 {
   "title": "Ejection Seats",
   "category": "ARFF",
+  "type": "ARFF",
   "klps": [
     {
       "number": "2.5.11.1",
