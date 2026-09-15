@@ -1,1 +1,1760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover">
+<title>Fire & Rescue Training Planner</title>
+<style>
+    :root {
+        --mg-bg: #0f1210;
+        --mg-surface: #171b18;
+        --mg-surface-card: #202621;
+        --mg-primary: #3d7e56;
+        --mg-primary-active: #2f6343;
+        --mg-secondary: #718779;
+        --mg-accent: #c49a62;
+        --mg-reject: #c45b52;
+        --mg-accept: #3d7e56;
+        --mg-text: #f0f4f1;
+        --mg-text-muted: #8b9d91;
+        --mg-border: rgba(255, 255, 255, 0.12);
+        --mg-chip: rgba(255, 255, 255, 0.08);
+        --mg-chip-active: rgba(255, 255, 255, 0.16);
+        --mg-highlight: #52a373;
+        --mg-card-glass: rgba(0, 0, 0, 0.4);
+        --mg-card-glass-active: rgba(0, 0, 0, 0.65);
+    }
 
+    html {
+        overflow: hidden;
+        height: 100%;
+        touch-action: pan-y;
+        -webkit-text-size-adjust: 100%;
+    }
+
+    body { 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+        background-color: var(--mg-bg); 
+        color: var(--mg-text);
+        display: flex; 
+        justify-content: center; 
+        margin: 0; 
+        padding: 0; 
+        width: 100vw; 
+        height: 100%; 
+        position: fixed; 
+        top: 0; 
+        left: 0; 
+        overflow: hidden; 
+        touch-action: pan-y; 
+        -webkit-tap-highlight-color: transparent; 
+        -webkit-user-select: none; 
+        user-select: none; 
+    }
+    
+    #intro-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: #000000;
+        z-index: 99999;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        transition: opacity 0.4s ease;
+    }
+
+    #intro-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    #skip-intro-btn {
+        position: absolute;
+        top: max(16px, env(safe-area-inset-top));
+        right: 16px;
+        width: auto;
+        padding: 8px 14px;
+        margin: 0;
+        font-size: 13px;
+        background: rgba(0, 0, 0, 0.6);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 20px;
+        color: #ffffff;
+        cursor: pointer;
+        z-index: 100000;
+    }
+
+    #portrait-warning {
+        display: none;
+    }
+
+    @media screen and (orientation: landscape) and (max-height: 600px) {
+        #portrait-warning {
+            display: flex;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: #0f1210;
+            color: #ffffff;
+            z-index: 999999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 24px;
+            box-sizing: border-box;
+        }
+        #portrait-warning svg {
+            width: 48px;
+            height: 48px;
+            fill: #ffffff;
+            margin-bottom: 12px;
+        }
+    }
+
+    #app-container { 
+        width: 100%; 
+        max-width: 400px; 
+        height: 100%; 
+        max-height: 100dvh; 
+        background: var(--mg-surface); 
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.6); 
+        box-sizing: border-box; 
+        position: relative; 
+        overflow: hidden; 
+        display: flex; 
+        flex-direction: column; 
+    }
+
+    .screen { flex: 1; display: none; flex-direction: column; position: relative; }
+    .screen.active { display: flex; }
+    
+    #setup-screen, #summary-screen, #favorites-screen { 
+        padding: 24px 20px; 
+        padding-top: max(24px, env(safe-area-inset-top)); 
+        padding-bottom: max(24px, env(safe-area-inset-bottom)); 
+        overflow-y: auto; 
+        -webkit-overflow-scrolling: touch; 
+        background: radial-gradient(circle at top right, #1d2620 0%, #121513 100%);
+    }
+
+    #swipe-screen { 
+        position: relative; 
+        overflow: hidden; 
+        background: #0f1210; 
+        padding: 0;
+    }
+
+    h2 { 
+        margin-top: 0; 
+        color: #ffffff; 
+        font-size: 24px; 
+        font-weight: 700; 
+        letter-spacing: -0.5px; 
+        margin-bottom: 20px; 
+    }
+
+    h3 { 
+        margin-top: 20px; 
+        margin-bottom: 10px; 
+        color: #ffffff; 
+        font-size: 15px; 
+        font-weight: 600; 
+        text-transform: uppercase; 
+        letter-spacing: 0.5px; 
+        border-bottom: 1px solid var(--mg-border); 
+        padding-bottom: 6px; 
+    }
+
+    label { 
+        font-size: 12px; 
+        text-transform: uppercase; 
+        letter-spacing: 0.5px; 
+        font-weight: 600; 
+        display: block; 
+        margin-top: 18px; 
+        margin-bottom: 8px; 
+        color: var(--mg-text-muted); 
+    }
+
+    input[type="number"], select { 
+        width: 100%; 
+        padding: 14px; 
+        box-sizing: border-box; 
+        border: 1px solid var(--mg-border); 
+        border-radius: 12px; 
+        font-size: 15px; 
+        font-weight: 500; 
+        background: var(--mg-card-glass); 
+        color: #ffffff; 
+        appearance: none; 
+        -webkit-appearance: none; 
+    }
+
+    input[type="number"]:focus, select:focus { 
+        outline: none; 
+        border-color: var(--mg-primary); 
+        background: rgba(0, 0, 0, 0.6); 
+    }
+    
+    .checkbox-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+    .checkbox-group label { 
+        display: inline-flex; 
+        align-items: center; 
+        margin-top: 0; 
+        font-weight: 500; 
+        font-size: 13px; 
+        text-transform: none; 
+        letter-spacing: normal; 
+        background: var(--mg-card-glass); 
+        color: var(--mg-text); 
+        padding: 10px 14px; 
+        border-radius: 12px; 
+        cursor: pointer; 
+        border: 1px solid var(--mg-border); 
+        transition: background-color 0.15s, border-color 0.15s; 
+    }
+    .checkbox-group label:active { 
+        background: var(--mg-chip-active); 
+    }
+    .checkbox-group input[type="checkbox"] { 
+        width: auto; 
+        margin: 0 8px 0 0; 
+        cursor: pointer; 
+        transform: scale(1.15); 
+        accent-color: var(--mg-primary); 
+    }
+    
+    button { 
+        width: 100%; 
+        padding: 14px; 
+        margin-top: 14px; 
+        border: 1px solid var(--mg-border); 
+        border-radius: 12px; 
+        background: var(--mg-primary); 
+        color: #ffffff; 
+        font-size: 15px; 
+        font-weight: 600; 
+        cursor: pointer; 
+        transition: background-color 0.15s ease, transform 0.1s ease; 
+    }
+    button:active { 
+        background: var(--mg-primary-active); 
+        transform: scale(0.99); 
+    }
+    button:disabled { opacity: 0.4; pointer-events: none; }
+    button.secondary { background: var(--mg-card-glass); margin-top: 10px; }
+    button.action-btn { background: var(--mg-accent); margin-top: 10px; border-color: rgba(255, 255, 255, 0.2); }
+    
+    .swipe-page {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        padding: 0;
+        box-sizing: border-box;
+        background: #171b18;
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease;
+        transform-origin: 50% 100%;
+        will-change: transform;
+        overflow: hidden;
+    }
+    
+    #page-current { z-index: 2; }
+    #page-next { z-index: 1; transform: scale(1); opacity: 1; }
+    
+    .swipe-page.dragging { transition: none !important; }
+    .swipe-page.swipe-left { transform: translate(-150%, 0) rotate(-15deg) !important; opacity: 0; }
+    .swipe-page.swipe-right { transform: translate(150%, 0) rotate(15deg) !important; opacity: 0; }
+    .swipe-page.swipe-up { transform: translate(0, -150%) scale(0.8) !important; opacity: 0; }
+    
+    .card { 
+        margin: 0; 
+        border: none; 
+        border-radius: 0; 
+        width: 100%; 
+        height: 100%; 
+        background: transparent; 
+        flex: 1; 
+        display: flex; 
+        flex-direction: column; 
+        justify-content: flex-start; 
+        position: relative; 
+        user-select: none; 
+        -webkit-user-select: none; 
+        overflow: hidden; 
+    }
+
+    .card-nav-bar {
+        position: absolute;
+        top: max(16px, env(safe-area-inset-top));
+        left: 16px;
+        right: 16px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        z-index: 20;
+        pointer-events: none;
+    }
+    .circle-icon-btn {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: var(--mg-card-glass);
+        border: 1px solid var(--mg-border);
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        pointer-events: auto;
+        padding: 0;
+        margin: 0;
+        font-size: 18px;
+        line-height: 1;
+    }
+    .circle-icon-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    .card-hero-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        position: absolute;
+        top: 0;
+        left: 0;
+        z-index: 1;
+        background: #1f2621;
+        pointer-events: none;
+    }
+
+    .card-content-pane {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 65%;
+        z-index: 2;
+        background: linear-gradient(
+            to top,
+            rgba(15, 18, 16, 0.98) 0%,
+            rgba(18, 22, 19, 0.92) 45%,
+            rgba(18, 22, 19, 0.65) 75%,
+            transparent 100%
+        );
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 20px 20px max(24px, env(safe-area-inset-bottom));
+        box-sizing: border-box;
+        text-align: left;
+    }
+
+    .plan-header-block {
+        margin-bottom: 12px;
+    }
+    .card h3.plan-title {
+        font-size: 22px;
+        font-weight: 700;
+        line-height: 1.15;
+        letter-spacing: -0.5px;
+        color: #ffffff;
+        margin: 0 0 4px 0;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+        border: none;
+        padding: 0;
+    }
+    .plan-meta-author {
+        font-size: 13px;
+        color: var(--mg-text-muted);
+        margin: 0;
+        font-weight: 400;
+        text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+    }
+
+    .plan-metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        padding: 10px 0;
+        border-top: 1px solid var(--mg-border);
+        border-bottom: 1px solid var(--mg-border);
+        margin-bottom: 14px;
+    }
+    .metric-col {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+    .metric-label {
+        font-size: 11px;
+        color: var(--mg-text-muted);
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    .metric-val {
+        font-size: 14px;
+        font-weight: 600;
+        color: #ffffff;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+    }
+
+    .plan-pill-actions {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    .pill-btn {
+        flex: 1;
+        height: 52px;
+        background: var(--mg-card-glass);
+        border: 1px solid var(--mg-border);
+        border-radius: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        padding: 0;
+        margin: 0;
+        color: #ffffff;
+        cursor: pointer;
+        transition: background-color 0.15s ease, transform 0.1s ease;
+    }
+    .pill-btn:active {
+        background: var(--mg-card-glass-active);
+        transform: scale(0.97);
+    }
+    .pill-btn svg {
+        width: 18px;
+        height: 18px;
+        fill: currentColor;
+    }
+    .pill-btn span {
+        font-size: 11px;
+        font-weight: 500;
+        letter-spacing: 0.2px;
+    }
+
+    .story-card-link {
+        background: var(--mg-card-glass);
+        border: 1px solid var(--mg-border);
+        border-radius: 12px;
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        pointer-events: auto;
+    }
+    .story-thumb {
+        width: 32px;
+        height: 32px;
+        border-radius: 6px;
+        object-fit: cover;
+        background: rgba(255, 255, 255, 0.1);
+    }
+    .story-text {
+        flex: 1;
+        overflow: hidden;
+    }
+    .story-kicker {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: var(--mg-text-muted);
+    }
+    .story-headline {
+        font-size: 12px;
+        font-weight: 600;
+        color: #ffffff;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        overflow: hidden;
+    }
+    .story-chevron {
+        color: var(--mg-text-muted);
+        font-size: 18px;
+        line-height: 1;
+    }
+
+    .swipe-stamp {
+        position: absolute;
+        top: 90px;
+        padding: 8px 18px;
+        border: 4px solid;
+        border-radius: 10px;
+        font-size: 32px;
+        font-weight: 900;
+        text-transform: uppercase;
+        letter-spacing: 2px;
+        pointer-events: none;
+        opacity: 0;
+        z-index: 30;
+        transition: opacity 0.1s linear;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+        box-shadow: 0 0 15px rgba(0, 0, 0, 0.4);
+        background: rgba(0, 0, 0, 0.25);
+        backdrop-filter: blur(2px);
+    }
+    .stamp-dismiss {
+        left: 24px;
+        border-color: var(--mg-reject);
+        color: var(--mg-reject);
+        transform: rotate(-15deg);
+    }
+    .stamp-save {
+        right: 24px;
+        border-color: var(--mg-accept);
+        color: var(--mg-accept);
+        transform: rotate(15deg);
+    }
+    .stamp-fav {
+        top: 90px;
+        left: 50%;
+        transform: translateX(-50%) rotate(0deg);
+        border-color: var(--mg-accent);
+        color: var(--mg-accent);
+    }
+    
+    ul { list-style-type: none; padding: 0; margin: 0; margin-bottom: 20px; }
+    li { 
+        display: flex; 
+        justify-content: space-between; 
+        padding: 12px 0; 
+        border-bottom: 1px solid var(--mg-border); 
+        font-size: 14px; 
+        color: var(--mg-text); 
+    }
+    .favorite-item { 
+        align-items: center; 
+        background: var(--mg-card-glass); 
+        border: 1px solid var(--mg-border); 
+        border-radius: 12px; 
+        padding: 10px 14px; 
+        margin-bottom: 8px; 
+    }
+    .favorite-item img { width: 44px; height: 44px; border-radius: 8px; margin-right: 12px; object-fit: cover; }
+    .favorite-item div { display: flex; align-items: center; }
+
+    .category-title {
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+        color: var(--mg-accent);
+        background: var(--mg-card-glass);
+        border: 1px solid var(--mg-border);
+        padding: 6px 12px;
+        border-radius: 8px;
+        margin: 14px 0 8px 0;
+    }
+    
+    .modal { 
+        display: none; 
+        position: fixed; 
+        z-index: 100; 
+        left: 0; 
+        top: 0; 
+        width: 100%; 
+        height: 100%; 
+        background-color: rgba(0, 0, 0, 0.75); 
+    }
+    .modal-content { 
+        background-color: #1a1e1b; 
+        color: var(--mg-text); 
+        margin: 15% auto; 
+        padding: 24px; 
+        border-radius: 16px; 
+        width: 90%; 
+        max-width: 400px; 
+        max-height: 75vh; 
+        overflow-y: auto; 
+        position: relative; 
+        box-sizing: border-box; 
+        -webkit-overflow-scrolling: touch; 
+        overscroll-behavior: contain; 
+        display: flex; 
+        flex-direction: column; 
+        border: 1px solid var(--mg-border); 
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); 
+    }
+    .close-modal { 
+        position: absolute; 
+        right: 16px; 
+        top: 16px; 
+        color: var(--mg-text-muted); 
+        font-size: 26px; 
+        font-weight: bold; 
+        cursor: pointer; 
+        line-height: 1; 
+        padding: 4px; 
+    }
+    .modal-content h3 { 
+        margin-top: 0; 
+        padding-right: 30px; 
+        border-bottom: 1px solid var(--mg-border); 
+        padding-bottom: 10px; 
+        color: #ffffff; 
+    }
+    .modal-content h4 { 
+        margin-top: 16px; 
+        margin-bottom: 6px; 
+        color: var(--mg-accent); 
+        font-size: 13px; 
+        text-transform: uppercase; 
+        letter-spacing: 0.5px; 
+    }
+    .modal-content ul, .modal-content ol { padding-left: 20px; margin-bottom: 15px; }
+    .modal-content li { display: list-item; border-bottom: none; padding: 4px 0; justify-content: flex-start; text-align: left; }
+
+    .wakelock-btn {
+        background: var(--mg-card-glass);
+        margin-top: 10px;
+        font-size: 14px;
+        padding: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+    }
+    .wakelock-btn.active {
+        background: var(--mg-accept);
+    }
+
+    @media print {
+        @page {
+            size: A4 portrait;
+            margin: 10mm;
+        }
+
+        body {
+            background-color: #fff !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            display: block !important;
+            position: static !important;
+            overflow: visible !important;
+            color: #000 !important;
+        }
+
+        #app-container {
+            max-width: 100% !important;
+            width: 100% !important;
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            min-height: auto !important;
+            max-height: none !important;
+            overflow: visible !important;
+            background: #fff !important;
+        }
+
+        .screen {
+            display: none !important;
+        }
+
+        #summary-screen {
+            display: block !important;
+            padding: 0 !important;
+            overflow: visible !important;
+            background: #fff !important;
+        }
+
+        #summary-screen h2 {
+            font-size: 18px;
+            margin-bottom: 12px;
+            text-align: center;
+            border-bottom: 2px solid #333;
+            padding-bottom: 6px;
+            color: #000 !important;
+        }
+
+        .print-layout {
+            display: grid;
+            grid-template-columns: 1fr 1.3fr;
+            gap: 20px;
+            align-items: start;
+        }
+
+        .print-section h3 {
+            font-size: 13px;
+            margin-top: 0;
+            margin-bottom: 6px;
+            border-bottom: 1px solid #999;
+            padding-bottom: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #000 !important;
+        }
+
+        .category-title {
+            background: none !important;
+            border-bottom: 1px solid #bbb !important;
+            border-left: none !important;
+            border-right: none !important;
+            border-top: none !important;
+            padding: 2px 0 !important;
+            margin: 6px 0 2px 0 !important;
+            font-size: 10px !important;
+            color: #333 !important;
+        }
+
+        ul {
+            margin-bottom: 0 !important;
+        }
+
+        li {
+            padding: 2px 0 !important;
+            font-size: 10px !important;
+            border-bottom: 1px dotted #ccc !important;
+            line-height: 1.2 !important;
+            color: #000 !important;
+        }
+
+        button,
+        #info-modal,
+        .modal,
+        #portrait-warning,
+        #intro-overlay {
+            display: none !important;
+        }
+    }
+</style>
+</head>
+<body>
+
+<div id="intro-overlay">
+    <button id="skip-intro-btn" onclick="dismissIntro()">Skip</button>
+    <video id="intro-video" src="intro.mp4" playsinline muted autoplay preload="auto"></video>
+</div>
+
+<div id="portrait-warning">
+    <svg viewBox="0 0 24 24"><path d="M16 1H8C6.34 1 5 2.34 5 4v16c0 1.66 1.34 3 3 3h8c1.66 0 3-1.34 3-3V4c0-1.66-1.34-3-3-3zm1 18H7V5h10v14z"/></svg>
+    <div style="font-weight: 600; font-size: 16px;">Portrait Mode Only</div>
+    <div style="font-size: 13px; color: #8b9d91; margin-top: 4px;">Rotate device back to portrait orientation.</div>
+</div>
+
+<div id="app-container">
+    <div id="setup-screen" class="screen active">
+        <h2>Training Planner</h2>
+        
+        <label for="days">Training Days / Drills Needed</label>
+        <input type="number" id="days" value="5" min="1" max="7">
+
+        <label for="crew-multiplier">Crew Scale / Appliance Count</label>
+        <select id="crew-multiplier">
+            <option value="1" selected>Single Crew (1x Equipment)</option>
+            <option value="1.5">Watch / Multi-Team (1.5x Equipment)</option>
+            <option value="2">Two Appliances (2.0x Equipment)</option>
+            <option value="3">Station Multi-Pump Exercise (3.0x Equipment)</option>
+        </select>
+
+        <label>Drill Duration</label>
+        <div id="drill-time-filters" class="checkbox-group">
+            <label><input type="checkbox" value="quick" checked> 0–30 mins</label>
+            <label><input type="checkbox" value="medium" checked> 31–59 mins</label>
+            <label><input type="checkbox" value="long" checked> 60+ mins</label>
+        </div>
+
+        <label>Disciplines &amp; Categories</label>
+        <div id="plan-categories" class="checkbox-group">
+            <label><input type="checkbox" value="ARFF" checked> ARFF</label>
+            <label><input type="checkbox" value="Structural" checked> Structural</label>
+            <label><input type="checkbox" value="BA" checked> BA</label>
+            <label><input type="checkbox" value="General" checked> General</label>
+            <label><input type="checkbox" value="RTC" checked> RTC</label>
+        </div>
+        
+        <button id="start-btn" onclick="startPlanning()">Start Swiping</button>
+        <button class="secondary" onclick="viewFavorites()">View Priority Drills</button>
+    </div>
+
+    <div id="swipe-screen" class="screen">
+        <!-- Next Card Layer -->
+        <div id="page-next" class="swipe-page">
+            <div class="card-nav-bar">
+                <button class="circle-icon-btn" disabled title="Undo">&#8249;</button>
+                <button class="circle-icon-btn" disabled title="More details">&bull;&bull;&bull;</button>
+            </div>
+
+            <div class="card">
+                <img class="card-hero-image plan-image" src="" alt="Drill Image">
+                <div class="card-content-pane">
+                    <div class="plan-header-block">
+                        <h3 class="plan-title">Loading...</h3>
+                        <p class="plan-meta-author">Operational Training Standard &bull; In House</p>
+                    </div>
+
+                    <div class="plan-metrics-grid">
+                        <div class="metric-col">
+                            <span class="metric-label">Duration</span>
+                            <span class="metric-val plan-time">-- mins</span>
+                        </div>
+                        <div class="metric-col">
+                            <span class="metric-label">Selected</span>
+                            <span class="metric-val plan-progress">0/5</span>
+                        </div>
+                        <div class="metric-col">
+                            <span class="metric-label">Category</span>
+                            <span class="metric-val plan-tag">--</span>
+                        </div>
+                    </div>
+
+                    <div class="plan-pill-actions">
+                        <button class="pill-btn" tabindex="-1">
+                            <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                            <span>Dismiss</span>
+                        </button>
+                        <button class="pill-btn" tabindex="-1">
+                            <svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+                            <span>Favorite</span>
+                        </button>
+                        <button class="pill-btn" tabindex="-1">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                            <span>Save</span>
+                        </button>
+                    </div>
+
+                    <div class="story-card-link">
+                        <img class="story-thumb plan-image-thumb" src="" alt="">
+                        <div class="story-text">
+                            <div class="story-kicker">Briefing &amp; Drill Specs</div>
+                            <div class="story-headline plan-sub-headline">Objectives &amp; Kit List</div>
+                        </div>
+                        <div class="story-chevron">&rsaquo;</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Current Active Card Layer -->
+        <div id="page-current" class="swipe-page">
+            <div class="swipe-stamp stamp-dismiss" id="stamp-dismiss">Dismiss</div>
+            <div class="swipe-stamp stamp-save" id="stamp-save">Save</div>
+            <div class="swipe-stamp stamp-fav" id="stamp-fav">FAV</div>
+
+            <div class="card-nav-bar">
+                <button id="undo-btn" class="circle-icon-btn" onclick="undoLastAction()" disabled title="Undo">&#8249;</button>
+                <button class="circle-icon-btn" onclick="showPlanInfo()" title="More details">&bull;&bull;&bull;</button>
+            </div>
+
+            <div class="card">
+                <img class="card-hero-image plan-image" src="" alt="Drill Image">
+
+                <div class="card-content-pane">
+                    <div class="plan-header-block">
+                        <h3 class="plan-title">Loading...</h3>
+                        <p class="plan-meta-author">Operational Training Standard &bull; In House</p>
+                    </div>
+
+                    <div class="plan-metrics-grid">
+                        <div class="metric-col">
+                            <span class="metric-label">Duration</span>
+                            <span class="metric-val plan-time">-- mins</span>
+                        </div>
+                        <div class="metric-col">
+                            <span class="metric-label">Selected</span>
+                            <span class="metric-val plan-progress">0/5</span>
+                        </div>
+                        <div class="metric-col">
+                            <span class="metric-label">Category</span>
+                            <span class="metric-val plan-tag">--</span>
+                        </div>
+                    </div>
+
+                    <div class="plan-pill-actions">
+                        <button class="pill-btn" onclick="triggerSwipe('reject')" title="Dismiss drill">
+                            <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                            <span>Dismiss</span>
+                        </button>
+                        <button class="pill-btn" onclick="triggerSwipe('favorite')" title="Save drill as priority">
+                            <svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
+                            <span>Favorite</span>
+                        </button>
+                        <button class="pill-btn" onclick="triggerSwipe('accept')" title="Save to training rota">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                            <span>Save</span>
+                        </button>
+                    </div>
+
+                    <div class="story-card-link" onclick="showPlanInfo()">
+                        <img class="story-thumb plan-image-thumb" src="" alt="">
+                        <div class="story-text">
+                            <div class="story-kicker">Briefing &amp; Drill Specs</div>
+                            <div class="story-headline plan-sub-headline">Objectives &amp; Kit List</div>
+                        </div>
+                        <div class="story-chevron">&rsaquo;</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="summary-screen" class="screen">
+        <h2>Training Schedule Complete</h2>
+        
+        <div class="print-layout">
+            <div class="print-section">
+                <h3>Training Agenda</h3>
+                <ul id="training-agenda"></ul>
+            </div>
+            
+            <div class="print-section">
+                <h3>Consolidated Equipment &amp; Stores</h3>
+                <div id="equipment-list-grouped"></div>
+            </div>
+        </div>
+        
+        <button onclick="printPlan()">Print Schedule (A4)</button>
+        <button class="action-btn" onclick="exportToCalendar()">Export to Calendar (.ics)</button>
+        <button class="action-btn" onclick="savePlan()">Save Schedule</button>
+        <button class="secondary" onclick="resetApp()">Start Over</button>
+    </div>
+
+    <div id="favorites-screen" class="screen">
+        <h2>Priority Drills</h2>
+        <ul id="favorites-list"></ul>
+        <button class="secondary" onclick="resetApp()">Back to Setup</button>
+    </div>
+</div>
+
+<div id="info-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="closePlanInfo()">&times;</span>
+        <h3 id="modal-title">Drill Details</h3>
+        <h4>Required Stores &amp; Equipment</h4>
+        <ul id="modal-equipment"></ul>
+        <h4>Drill Procedure &amp; Method</h4>
+        <ol id="modal-method"></ol>
+        <button id="wakelock-btn" class="wakelock-btn" onclick="toggleWakeLock()">Keep Screen On: Off</button>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('gesturestart', e => e.preventDefault(), { passive: false });
+    document.addEventListener('gesturechange', e => e.preventDefault(), { passive: false });
+    document.addEventListener('gestureend', e => e.preventDefault(), { passive: false });
+    document.addEventListener('touchstart', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
+
+    if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('portrait').catch(() => {});
+    }
+
+    const introOverlay = document.getElementById('intro-overlay');
+    const introVideo = document.getElementById('intro-video');
+
+    function dismissIntro() {
+        if (!introOverlay || introOverlay.style.display === 'none') return;
+        
+        if (introVideo) {
+            introVideo.pause();
+            introVideo.removeAttribute('src');
+            introVideo.load();
+        }
+        
+        introOverlay.style.opacity = '0';
+        setTimeout(() => {
+            introOverlay.style.display = 'none';
+        }, 400);
+    }
+
+    let trainingDatabase = [];
+    let plans = [];
+    let config = { days: 0, categories: [], multiplier: 1, drillTimes: [] };
+    let state = { 
+        currentPlanIndex: 0, 
+        acceptedDrills: 0, 
+        acceptedPlans: [], 
+        rejectedPlans: [], 
+        rawEquipmentList: [],
+        history: []
+    };
+    let favorites = JSON.parse(localStorage.getItem('firePlannerFavorites')) || [];
+    let wakeLockSentinel = null;
+    
+    const pageCurrent = document.getElementById('page-current');
+    const pageNext = document.getElementById('page-next');
+    const stampDismiss = document.getElementById('stamp-dismiss');
+    const stampSave = document.getElementById('stamp-save');
+    const stampFav = document.getElementById('stamp-fav');
+    const undoBtn = document.getElementById('undo-btn');
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let currentX = 0;
+    let currentY = 0;
+    const swipeThreshold = 80;
+
+    const EQUIPMENT_CATEGORIES = [
+        {
+            name: 'ARFF & Foam Equipment',
+            pattern: /\b(foam|aspirating|monitor|branch|turret|expansion|inductor|drum|dry chemical|aircraft|striker|hydrant|tanker)\b/i
+        },
+        {
+            name: 'Breathing Apparatus & Gas',
+            pattern: /\b(cylinder|ba set|facemask|tally|board|guide line|telemetry|distress|adsu|dsu|resuscitator|smoke|gas monitor|thermal imaging|tic)\b/i
+        },
+        {
+            name: 'RTC & Extrication Gear',
+            pattern: /\b(cutter|spreader|ram|hydraulic|hoses|blocks|chocks|stabiliser|winch|glass master|protection sheet|spine board|cervical collar|air bag)\b/i
+        },
+        {
+            name: 'Structural Delivery & Pumps',
+            pattern: /\b(hose|delivery|suction|strainer|standpipe|key|bar|branch|diffuser|fog spike|pump|manifold|dividing breech|collecting breech|generator|lighting)\b/i
+        },
+        {
+            name: 'Ladders, Heights & Lines',
+            pattern: /\b(135 ladder|9m ladder|short extension|roof ladder|harness|line|rope|carabiner|pulley|fall arrest|rigging)\b/i
+        },
+        {
+            name: 'General Stores & Consumables',
+            pattern: /\b(first aid|casualty|dummy|tarpaulin|chalk|cones|barricade|radio|torch|halogen|blanket|spill kit|absorbent)\b/i
+        }
+    ];
+
+    function classifyEquipment(line) {
+        for (const cat of EQUIPMENT_CATEGORIES) {
+            if (cat.pattern.test(line)) return cat.name;
+        }
+        return 'General Stores & Consumables';
+    }
+
+    function parseEquipmentString(rawStr) {
+        const fractionMap = { '½': 0.5, '⅓': 0.333, '⅔': 0.667, '¼': 0.25, '¾': 0.75, '⅛': 0.125 };
+        let str = rawStr.trim();
+
+        for (const [char, val] of Object.entries(fractionMap)) {
+            if (str.startsWith(char)) {
+                str = `${val} ${str.substring(char.length).trim()}`;
+                break;
+            }
+        }
+
+        const regex = /^((?:\d+\s+)?\d+\/\d+|\d*\.?\d+)?\s*(.*)$/;
+        const match = str.match(regex);
+
+        if (!match || !match[1]) {
+            return { qty: 0, unit: '', item: str.trim(), original: rawStr };
+        }
+
+        let qty = 0;
+        const rawQty = match[1].trim();
+        if (rawQty.includes('/')) {
+            const parts = rawQty.split(/\s+/);
+            if (parts.length === 2) {
+                const frac = parts[1].split('/');
+                qty = parseFloat(parts[0]) + (parseFloat(frac[0]) / parseFloat(frac[1]));
+            } else {
+                const frac = rawQty.split('/');
+                qty = parseFloat(frac[0]) / parseFloat(frac[1]);
+            }
+        } else {
+            qty = parseFloat(rawQty);
+        }
+
+        let remainder = match[2].trim();
+
+        const unitRegex = /^(lengths?|sets?|cylinders?|drums?|rolls?|pairs?|units?|pieces?|bottles?|litres?|kg|packs?)\b\s*(.*)/i;
+        const unitMatch = remainder.match(unitRegex);
+
+        let unit = '';
+        let item = remainder;
+
+        if (unitMatch) {
+            unit = unitMatch[1].toLowerCase();
+            item = unitMatch[2].trim();
+        }
+
+        const normalizedItem = item.toLowerCase()
+            .replace(/ies$/, 'y')
+            .replace(/es$/, '')
+            .replace(/s$/, '');
+
+        return { qty, unit, item: normalizedItem, displayItem: item, original: rawStr };
+    }
+
+    function scaleEquipmentLine(line, factor) {
+        if (factor === 1) return line;
+
+        const fractionMap = { '½': 0.5, '⅓': 0.333, '⅔': 0.667, '¼': 0.25, '¾': 0.75, '⅛': 0.125 };
+        let modified = line;
+
+        for (const [char, val] of Object.entries(fractionMap)) {
+            if (modified.startsWith(char)) {
+                const scaled = Math.round(val * factor * 10) / 10;
+                return `${scaled} ${modified.substring(char.length).trim()}`;
+            }
+        }
+
+        const match = modified.match(/^(\d+\s*\/\s*\d+|\d*\.?\d+)\s*(.*)/);
+        if (!match) return line;
+
+        let originalQty = 0;
+        if (match[1].includes('/')) {
+            const parts = match[1].split('/');
+            originalQty = parseFloat(parts[0]) / parseFloat(parts[1]);
+        } else {
+            originalQty = parseFloat(match[1]);
+        }
+
+        if (isNaN(originalQty) || originalQty <= 0) return line;
+
+        const scaledQty = Math.round(originalQty * factor * 100) / 100;
+        return `${scaledQty} ${match[2]}`.trim();
+    }
+
+    async function loadTrainingDatabase() {
+        try {
+            const manifestRes = await fetch('Cards/cards.json');
+            if (!manifestRes.ok) throw new Error(`Manifest load failed: HTTP ${manifestRes.status}`);
+            const cardPaths = await manifestRes.json();
+            
+            const cardPromises = cardPaths.map(async itemPath => {
+                const cleanFilename = itemPath.replace(/^(\.\/)?(Cards\/)?/i, '');
+                const cardUrl = `Cards/${cleanFilename}`;
+                const res = await fetch(cardUrl);
+                if (!res.ok) return null;
+                return res.json();
+            });
+            
+            const results = await Promise.all(cardPromises);
+            trainingDatabase = results.filter(item => item !== null);
+        } catch (err) {
+            console.error("Initialization error loading training plans:", err);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadTrainingDatabase();
+
+        if (introVideo) {
+            introVideo.addEventListener('ended', dismissIntro);
+            
+            const playPromise = introVideo.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(() => {
+                    // Autoplay prevented by browser
+                });
+            }
+        }
+    });
+
+    function resetStamps() {
+        stampDismiss.style.opacity = 0;
+        stampSave.style.opacity = 0;
+        stampFav.style.opacity = 0;
+    }
+
+    function updateStamps(x, y) {
+        const absX = Math.abs(x);
+        if (y < -40 && absX < 50) {
+            stampFav.style.opacity = Math.min(Math.abs(y) / swipeThreshold, 1);
+            stampDismiss.style.opacity = 0;
+            stampSave.style.opacity = 0;
+        } else if (x > 0) {
+            stampSave.style.opacity = Math.min(x / swipeThreshold, 1);
+            stampDismiss.style.opacity = 0;
+            stampFav.style.opacity = 0;
+        } else if (x < 0) {
+            stampDismiss.style.opacity = Math.min(absX / swipeThreshold, 1);
+            stampSave.style.opacity = 0;
+            stampFav.style.opacity = 0;
+        } else {
+            resetStamps();
+        }
+    }
+
+    pageCurrent.addEventListener('touchstart', e => {
+        if (e.target.closest('button') || e.target.closest('.story-card-link') || state.currentPlanIndex >= plans.length) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        pageCurrent.classList.add('dragging');
+        pageCurrent.style.transition = 'none';
+    }, { passive: true });
+
+    pageCurrent.addEventListener('touchmove', e => {
+        if (e.target.closest('button') || e.target.closest('.story-card-link') || state.currentPlanIndex >= plans.length) return;
+        if (!pageCurrent.classList.contains('dragging')) return;
+
+        currentX = e.touches[0].clientX - touchStartX;
+        currentY = e.touches[0].clientY - touchStartY;
+        
+        const rotate = currentX * 0.05;
+        pageCurrent.style.transform = `translate(${currentX}px, ${currentY}px) rotate(${rotate}deg)`;
+
+        updateStamps(currentX, currentY);
+    }, { passive: true });
+
+    pageCurrent.addEventListener('touchend', e => {
+        if (e.target.closest('button') || e.target.closest('.story-card-link') || state.currentPlanIndex >= plans.length) return;
+        if (!pageCurrent.classList.contains('dragging')) return;
+
+        pageCurrent.classList.remove('dragging');
+        pageCurrent.style.transition = '';
+        resetStamps();
+
+        if (currentX > swipeThreshold) {
+            triggerSwipe('accept');
+        } else if (currentX < -swipeThreshold) {
+            triggerSwipe('reject');
+        } else if (currentY < -swipeThreshold) {
+            triggerSwipe('favorite');
+        } else {
+            pageCurrent.style.transform = '';
+        }
+        currentX = 0;
+        currentY = 0;
+    }, { passive: true });
+
+    function triggerSwipe(action) {
+        if (state.currentPlanIndex >= plans.length) return;
+        
+        setControlsState(true);
+        resetStamps();
+        pageCurrent.style.transform = '';
+
+        if (action === 'accept') {
+            pageCurrent.classList.add('swipe-right');
+        } else if (action === 'reject') {
+            pageCurrent.classList.add('swipe-left');
+        } else if (action === 'favorite') {
+            pageCurrent.classList.add('swipe-up');
+        }
+
+        setTimeout(() => {
+            pageCurrent.classList.add('dragging');
+            pageCurrent.classList.remove('swipe-left', 'swipe-right', 'swipe-up');
+            
+            processSwipeAction(action);
+            
+            void pageCurrent.offsetWidth;
+            pageCurrent.classList.remove('dragging');
+            
+            if (state.currentPlanIndex < plans.length) {
+                setControlsState(false);
+            }
+        }, 300);
+    }
+
+    function processSwipeAction(action) {
+        state.history.push({
+            currentPlanIndex: state.currentPlanIndex,
+            acceptedDrills: state.acceptedDrills,
+            acceptedPlans: [...state.acceptedPlans],
+            rejectedPlans: [...state.rejectedPlans],
+            rawEquipmentList: state.rawEquipmentList.map(i => ({ ...i })),
+            plans: [...plans]
+        });
+        updateUndoButton();
+
+        const plan = plans[state.currentPlanIndex];
+        
+        if (action === 'favorite') {
+            if (!favorites.find(f => f.id === plan.id)) {
+                favorites.push(plan);
+                localStorage.setItem('firePlannerFavorites', JSON.stringify(favorites));
+            }
+            state.rejectedPlans.push(plan);
+        } else if (action === 'reject') {
+            state.rejectedPlans.push(plan);
+        } else if (action === 'accept') {
+            state.acceptedDrills++;
+            state.acceptedPlans.push(plan);
+            
+            const rawItems = plan.rawEquipment || plan.rawIngredients || [];
+            rawItems.forEach(rawEq => {
+                const parsed = parseEquipmentString(rawEq);
+                const scaledQty = parsed.qty * config.multiplier;
+                const key = `${parsed.item}|${parsed.unit}`;
+
+                const existing = state.rawEquipmentList.find(i => i.key === key);
+                if (existing) {
+                    existing.totalQty += scaledQty;
+                } else {
+                    state.rawEquipmentList.push({
+                        key: key,
+                        item: parsed.item,
+                        displayItem: parsed.displayItem,
+                        unit: parsed.unit,
+                        totalQty: scaledQty,
+                        rawFallback: rawEq
+                    });
+                }
+            });
+        }
+        
+        state.currentPlanIndex++;
+        
+        if (state.acceptedDrills >= config.days) {
+            finalizePlan();
+            return;
+        }
+
+        if (state.currentPlanIndex >= plans.length) {
+            if (state.rejectedPlans.length > 0) {
+                plans = [...state.rejectedPlans];
+                plans.sort(() => Math.random() - 0.5);
+                state.rejectedPlans = [];
+                state.currentPlanIndex = 0;
+            } else {
+                finalizePlan();
+                return;
+            }
+        }
+
+        loadPages();
+    }
+
+    function undoLastAction() {
+        if (!state.history || state.history.length === 0) return;
+        
+        const previousState = state.history.pop();
+        state.currentPlanIndex = previousState.currentPlanIndex;
+        state.acceptedDrills = previousState.acceptedDrills;
+        state.acceptedPlans = previousState.acceptedPlans;
+        state.rejectedPlans = previousState.rejectedPlans;
+        state.rawEquipmentList = previousState.rawEquipmentList;
+        plans = previousState.plans;
+
+        updateUndoButton();
+        resetStamps();
+        loadPages();
+        setControlsState(false);
+    }
+
+    function updateUndoButton() {
+        if (undoBtn) {
+            undoBtn.disabled = state.history.length === 0;
+        }
+    }
+
+    function switchScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+    }
+
+    async function startPlanning() {
+        if (trainingDatabase.length === 0) {
+            await loadTrainingDatabase();
+        }
+
+        if (trainingDatabase.length === 0) {
+            alert("No training drill data available. Check console network responses for cards.json and card items.");
+            return;
+        }
+
+        config.days = parseInt(document.getElementById('days').value);
+        config.multiplier = parseFloat(document.getElementById('crew-multiplier').value) || 1;
+        config.categories = Array.from(document.querySelectorAll('#plan-categories input:checked')).map(cb => cb.value);
+        config.drillTimes = Array.from(document.querySelectorAll('#drill-time-filters input:checked')).map(cb => cb.value);
+        
+        if (config.categories.length === 0) {
+            alert("Select at least one training category.");
+            return;
+        }
+
+        if (config.drillTimes.length === 0) {
+            alert("Select at least one duration bracket.");
+            return;
+        }
+
+        const filtered = trainingDatabase.filter(r => {
+            const matchesCategory = config.categories.includes(r.type);
+            
+            const time = parseInt(r.time, 10) || 0;
+            let bracket = 'quick';
+            if (time >= 60) {
+                bracket = 'long';
+            } else if (time >= 31) {
+                bracket = 'medium';
+            }
+
+            const matchesTime = config.drillTimes.includes(bracket);
+            return matchesCategory && matchesTime;
+        });
+        
+        if (filtered.length === 0) {
+            alert("No drills found matching the selected categories and durations.");
+            return;
+        }
+
+        switchScreen('swipe-screen');
+        setControlsState(true);
+
+        filtered.sort(() => Math.random() - 0.5);
+        plans = filtered;
+
+        state = { 
+            currentPlanIndex: 0, 
+            acceptedDrills: 0, 
+            acceptedPlans: [], 
+            rejectedPlans: [], 
+            rawEquipmentList: [],
+            history: []
+        };
+        updateUndoButton();
+        setControlsState(false);
+        loadPages();
+    }
+
+    function setControlsState(disabled) {
+        document.querySelectorAll('#swipe-screen .pill-btn').forEach(btn => btn.disabled = disabled);
+    }
+
+    function loadPages() {
+        renderPage(pageCurrent, state.currentPlanIndex, state.acceptedDrills);
+        renderPage(pageNext, state.currentPlanIndex + 1, state.acceptedDrills);
+    }
+
+    function renderPage(pageEl, index, acceptedCount) {
+        if (index >= plans.length) {
+            pageEl.style.display = 'none';
+            return;
+        }
+
+        pageEl.style.display = 'flex';
+        const plan = plans[index];
+
+        const imgEl = pageEl.querySelector('.plan-image');
+        if (imgEl) imgEl.src = plan.image || '';
+
+        const thumbEl = pageEl.querySelector('.plan-image-thumb');
+        if (thumbEl) thumbEl.src = plan.image || '';
+
+        const titleEl = pageEl.querySelector('.plan-title');
+        if (titleEl) titleEl.innerText = plan.title || 'Untitled Drill';
+
+        const timeEl = pageEl.querySelector('.plan-time');
+        if (timeEl) timeEl.innerText = `${plan.time || '--'} mins`;
+
+        const tagEl = pageEl.querySelector('.plan-tag');
+        if (tagEl) tagEl.innerText = plan.type || 'Drill';
+
+        const progressEl = pageEl.querySelector('.plan-progress');
+        if (progressEl) {
+            progressEl.innerText = `${acceptedCount}/${config.days}`;
+        }
+
+        const subHeadline = pageEl.querySelector('.plan-sub-headline');
+        if (subHeadline) subHeadline.innerText = plan.title || 'View Equipment & Steps';
+    }
+
+    function finalizePlan() {
+        const agendaContainer = document.getElementById('training-agenda');
+        agendaContainer.innerHTML = '';
+        
+        state.acceptedPlans.forEach(plan => {
+            const li = document.createElement('li');
+            li.innerHTML = `<span><strong>${plan.title}</strong></span> <span style="color:var(--mg-accent); font-size:12px;">${plan.type}</span>`;
+            agendaContainer.appendChild(li);
+        });
+
+        const groupedContainer = document.getElementById('equipment-list-grouped');
+        groupedContainer.innerHTML = '';
+
+        const categoryBuckets = {};
+
+        state.rawEquipmentList.forEach(entry => {
+            let label = entry.item;
+            if (entry.totalQty > 1 && !entry.unit) {
+                if (label.endsWith('y')) label = label.slice(0, -1) + 'ies';
+                else if (!label.endsWith('s')) label += 's';
+            }
+
+            const lineText = entry.totalQty > 0 
+                ? `${Math.round(entry.totalQty * 100) / 100} ${entry.unit ? entry.unit + ' ' : ''}${label}`.trim()
+                : entry.rawFallback;
+
+            const department = classifyEquipment(entry.item || entry.rawFallback);
+            if (!categoryBuckets[department]) categoryBuckets[department] = [];
+            categoryBuckets[department].push(lineText);
+        });
+
+        const sortedCategories = Object.keys(categoryBuckets).sort();
+        sortedCategories.forEach(categoryName => {
+            const header = document.createElement('div');
+            header.className = 'category-title';
+            header.innerText = categoryName;
+            groupedContainer.appendChild(header);
+
+            const ul = document.createElement('ul');
+            categoryBuckets[categoryName].sort((a, b) => a.localeCompare(b)).forEach(text => {
+                const li = document.createElement('li');
+                li.innerHTML = `<span>${text}</span>`;
+                ul.appendChild(li);
+            });
+            groupedContainer.appendChild(ul);
+        });
+        
+        switchScreen('summary-screen');
+    }
+
+    function printPlan() {
+        window.print();
+    }
+
+    function exportToCalendar() {
+        if (!state.acceptedPlans || state.acceptedPlans.length === 0) {
+            alert("No training drills selected to export.");
+            return;
+        }
+
+        const pad = (n) => String(n).padStart(2, '0');
+        
+        const formatICSDate = (date) => {
+            return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}T${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+        };
+
+        const escapeICS = (str) => {
+            return (str || '')
+                .replace(/\\/g, '\\\\')
+                .replace(/;/g, '\\;')
+                .replace(/,/g, '\\,')
+                .replace(/\r?\n/g, '\\n');
+        };
+
+        const now = new Date();
+        const dtstamp = `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`;
+
+        let icsContent = [
+            'BEGIN:VCALENDAR',
+            'VERSION:2.0',
+            'PRODID:-//Fire and Rescue Training Planner//EN',
+            'CALSCALE:GREGORIAN',
+            'METHOD:PUBLISH'
+        ];
+
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() + 1);
+
+        state.acceptedPlans.forEach((plan, index) => {
+            const eventDate = new Date(startDate);
+            eventDate.setDate(startDate.getDate() + index);
+            eventDate.setHours(18, 0, 0, 0);
+
+            const drillDurationMins = parseInt(plan.time, 10) || 60;
+            const endDate = new Date(eventDate.getTime() + drillDurationMins * 60 * 1000);
+
+            const uid = `drill-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}@fireplanner.local`;
+
+            const rawItems = plan.rawEquipment || plan.rawIngredients || [];
+            const equipment = rawItems
+                .map(eq => `• ${scaleEquipmentLine(eq, config.multiplier)}`)
+                .join('\n');
+
+            const method = (plan.method || [])
+                .map((step, i) => `${i + 1}. ${step}`)
+                .join('\n');
+
+            const description = `DRILL DURATION: ${plan.time || '--'} mins\nCATEGORY: ${plan.type || 'General'}\nCREW SCALE: ${config.multiplier}x\n\nREQUIRED EQUIPMENT & STORES:\n${equipment}\n\nDRILL METHOD & PROCEDURES:\n${method}`;
+
+            icsContent.push('BEGIN:VEVENT');
+            icsContent.push(`UID:${uid}`);
+            icsContent.push(`DTSTAMP:${dtstamp}`);
+            icsContent.push(`DTSTART:${formatICSDate(eventDate)}`);
+            icsContent.push(`DTEND:${formatICSDate(endDate)}`);
+            icsContent.push(`SUMMARY:${escapeICS(`Drill: [${plan.type}] ${plan.title}`)}`);
+            icsContent.push(`DESCRIPTION:${escapeICS(description)}`);
+            icsContent.push('STATUS:CONFIRMED');
+            icsContent.push('END:VEVENT');
+        });
+
+        icsContent.push('END:VCALENDAR');
+
+        const blob = new Blob([icsContent.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = `Training_Schedule_${new Date().toISOString().slice(0, 10)}.ics`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(link.href);
+    }
+
+    function savePlan() {
+        const planData = {
+            date: new Date().toISOString(),
+            multiplier: config.multiplier,
+            agenda: state.acceptedPlans,
+            equipmentList: state.rawEquipmentList
+        };
+        
+        let savedPlans = JSON.parse(localStorage.getItem('firePlannerSavedPlans')) || [];
+        savedPlans.push(planData);
+        localStorage.setItem('firePlannerSavedPlans', JSON.stringify(savedPlans));
+        
+        alert("Training schedule saved successfully!");
+    }
+
+    function viewFavorites() {
+        const listContainer = document.getElementById('favorites-list');
+        listContainer.innerHTML = '';
+
+        if (favorites.length === 0) {
+            listContainer.innerHTML = '<li>No priority drills saved.</li>';
+        } else {
+            favorites.forEach(fav => {
+                const li = document.createElement('li');
+                li.className = 'favorite-item';
+                li.innerHTML = `
+                    <div>
+                        <img src="${fav.image}" alt="img">
+                        <span>${fav.title}</span>
+                    </div>
+                `;
+                listContainer.appendChild(li);
+            });
+        }
+        
+        switchScreen('favorites-screen');
+    }
+
+    function resetApp() {
+        switchScreen('setup-screen');
+    }
+
+    function showPlanInfo() {
+        if (state.currentPlanIndex >= plans.length) return;
+        const plan = plans[state.currentPlanIndex];
+        
+        document.getElementById('modal-title').innerText = plan.title;
+        
+        const eqList = document.getElementById('modal-equipment');
+        eqList.innerHTML = '';
+        const rawItems = plan.rawEquipment || plan.rawIngredients || [];
+        rawItems.forEach(eq => {
+            const li = document.createElement('li');
+            li.innerText = scaleEquipmentLine(eq, config.multiplier);
+            eqList.appendChild(li);
+        });
+
+        const methodList = document.getElementById('modal-method');
+        methodList.innerHTML = '';
+        (plan.method || []).forEach(step => {
+            const li = document.createElement('li');
+            li.innerText = step;
+            methodList.appendChild(li);
+        });
+
+        updateWakeLockUI();
+        document.getElementById('info-modal').style.display = 'block';
+    }
+
+    async function closePlanInfo() {
+        if (wakeLockSentinel) {
+            try {
+                await wakeLockSentinel.release();
+            } catch (err) {
+                console.error("Error releasing wake lock:", err);
+            }
+            wakeLockSentinel = null;
+        }
+        updateWakeLockUI();
+        document.getElementById('info-modal').style.display = 'none';
+    }
+
+    async function toggleWakeLock() {
+        if (!('wakeLock' in navigator)) {
+            alert("Wake Lock API is not supported in this browser.");
+            return;
+        }
+
+        if (wakeLockSentinel !== null) {
+            try {
+                await wakeLockSentinel.release();
+            } catch (err) {
+                console.error("Error releasing wake lock:", err);
+            }
+            wakeLockSentinel = null;
+        } else {
+            try {
+                wakeLockSentinel = await navigator.wakeLock.request('screen');
+                wakeLockSentinel.addEventListener('release', () => {
+                    wakeLockSentinel = null;
+                    updateWakeLockUI();
+                });
+            } catch (err) {
+                console.error("Wake lock acquisition failed:", err);
+            }
+        }
+        updateWakeLockUI();
+    }
+
+    function updateWakeLockUI() {
+        const btn = document.getElementById('wakelock-btn');
+        if (!btn) return;
+        if (wakeLockSentinel !== null) {
+            btn.classList.add('active');
+            btn.innerText = "Keep Screen On: Active";
+        } else {
+            btn.classList.remove('active');
+            btn.innerText = "Keep Screen On: Off";
+        }
+    }
+
+    document.addEventListener('keydown', e => {
+        const swipeActive = document.getElementById('swipe-screen').classList.contains('active');
+        const modalOpen = document.getElementById('info-modal').style.display === 'block';
+
+        if (e.code === 'Space') {
+            e.preventDefault();
+            if (modalOpen) {
+                closePlanInfo();
+            } else if (swipeActive) {
+                showPlanInfo();
+            }
+            return;
+        }
+
+        if (e.key === 'Escape' && modalOpen) {
+            closePlanInfo();
+            return;
+        }
+
+        if (swipeActive && !modalOpen) {
+            if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                triggerSwipe('accept');
+            } else if (e.key === 'ArrowLeft') {
+                e.preventDefault();
+                triggerSwipe('reject');
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                triggerSwipe('favorite');
+            } else if (e.key === 'Backspace' || e.code === 'KeyZ') {
+                e.preventDefault();
+                undoLastAction();
+            }
+        }
+    });
+
+    document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState === 'visible' && document.getElementById('info-modal').style.display === 'block') {
+            const btn = document.getElementById('wakelock-btn');
+            if (btn && btn.classList.contains('active') && wakeLockSentinel === null) {
+                try {
+                    wakeLockSentinel = await navigator.wakeLock.request('screen');
+                    wakeLockSentinel.addEventListener('release', () => {
+                        wakeLockSentinel = null;
+                        updateWakeLockUI();
+                    });
+                } catch (err) {
+                    console.error("Wake lock re-acquisition failed:", err);
+                }
+                updateWakeLockUI();
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
