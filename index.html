@@ -873,7 +873,7 @@
 
                     <div class="plan-pill-actions">
                         <button class="pill-btn" onclick="triggerSwipe('reject')" title="Dismiss drill">
-                            <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                            <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
                             <span>Dismiss</span>
                         </button>
                         <button class="pill-btn" onclick="triggerSwipe('favorite')" title="Save drill as priority">
@@ -1030,7 +1030,7 @@
 
     function parseEquipmentString(rawStr) {
         const fractionMap = { '½': 0.5, '⅓': 0.333, '⅔': 0.667, '¼': 0.25, '¾': 0.75, '⅛': 0.125 };
-        let str = rawStr.trim();
+        let str = (rawStr || '').trim();
 
         for (const [char, val] of Object.entries(fractionMap)) {
             if (str.startsWith(char)) {
@@ -1086,7 +1086,7 @@
         if (factor === 1) return line;
 
         const fractionMap = { '½': 0.5, '⅓': 0.333, '⅔': 0.667, '¼': 0.25, '¾': 0.75, '⅛': 0.125 };
-        let modified = line;
+        let modified = (line || '').trim();
 
         for (const [char, val] of Object.entries(fractionMap)) {
             if (modified.startsWith(char)) {
@@ -1121,13 +1121,18 @@
             const cardPromises = cardPaths.map(async itemPath => {
                 const cleanFilename = itemPath.replace(/^(\.\/)?(Cards\/)?/i, '');
                 const cardUrl = `Cards/${cleanFilename}`;
-                const res = await fetch(cardUrl);
-                if (!res.ok) return null;
-                return res.json();
+                try {
+                    const res = await fetch(cardUrl);
+                    if (!res.ok) return null;
+                    return await res.json();
+                } catch (e) {
+                    return null;
+                }
             });
             
             const results = await Promise.all(cardPromises);
             trainingDatabase = results.filter(item => item !== null);
+            console.log(`Loaded ${trainingDatabase.length} drills from Cards/cards.json`);
         } catch (err) {
             console.error("Initialization error loading training plans:", err);
         }
@@ -1141,9 +1146,7 @@
             
             const playPromise = introVideo.play();
             if (playPromise !== undefined) {
-                playPromise.catch(() => {
-                    // Autoplay prevented by browser
-                });
+                playPromise.catch(() => {});
             }
         }
     });
@@ -1270,7 +1273,7 @@
             state.acceptedDrills++;
             state.acceptedPlans.push(plan);
             
-            const rawItems = plan.rawEquipment || plan.rawIngredients || [];
+            const rawItems = plan.rawEquipment || plan.equipment || plan.rawIngredients || [];
             rawItems.forEach(rawEq => {
                 const parsed = parseEquipmentString(rawEq);
                 const scaledQty = parsed.qty * config.multiplier;
@@ -1348,13 +1351,13 @@
         }
 
         if (trainingDatabase.length === 0) {
-            alert("No training drill data available. Check console network responses for cards.json and card items.");
+            alert("No training drill data available. Ensure your server is active and Cards/cards.json is accessible.");
             return;
         }
 
-        config.days = parseInt(document.getElementById('days').value);
+        config.days = parseInt(document.getElementById('days').value, 10) || 5;
         config.multiplier = parseFloat(document.getElementById('crew-multiplier').value) || 1;
-        config.categories = Array.from(document.querySelectorAll('#plan-categories input:checked')).map(cb => cb.value);
+        config.categories = Array.from(document.querySelectorAll('#plan-categories input:checked')).map(cb => cb.value.toLowerCase());
         config.drillTimes = Array.from(document.querySelectorAll('#drill-time-filters input:checked')).map(cb => cb.value);
         
         if (config.categories.length === 0) {
@@ -1368,9 +1371,13 @@
         }
 
         const filtered = trainingDatabase.filter(r => {
-            const matchesCategory = config.categories.includes(r.type);
+            const rawType = (r.type || r.category || '').toLowerCase().trim();
+            const matchesCategory = config.categories.includes(rawType);
             
-            const time = parseInt(r.time, 10) || 0;
+            const rawDuration = String(r.time || r.duration || '0');
+            const parsedDurationMatch = rawDuration.match(/\d+/);
+            const time = parsedDurationMatch ? parseInt(parsedDurationMatch[0], 10) : 0;
+
             let bracket = 'quick';
             if (time >= 60) {
                 bracket = 'long';
@@ -1416,6 +1423,8 @@
     }
 
     function renderPage(pageEl, index, acceptedCount) {
+        if (!pageEl) return;
+        
         if (index >= plans.length) {
             pageEl.style.display = 'none';
             return;
@@ -1434,10 +1443,14 @@
         if (titleEl) titleEl.innerText = plan.title || 'Untitled Drill';
 
         const timeEl = pageEl.querySelector('.plan-time');
-        if (timeEl) timeEl.innerText = `${plan.time || '--'} mins`;
+        if (timeEl) {
+            const rawDuration = String(plan.time || plan.duration || '--');
+            const durationClean = rawDuration.match(/\d+/) ? `${rawDuration.match(/\d+/)[0]} mins` : rawDuration;
+            timeEl.innerText = durationClean;
+        }
 
         const tagEl = pageEl.querySelector('.plan-tag');
-        if (tagEl) tagEl.innerText = plan.type || 'Drill';
+        if (tagEl) tagEl.innerText = plan.type || plan.category || 'Drill';
 
         const progressEl = pageEl.querySelector('.plan-progress');
         if (progressEl) {
@@ -1454,7 +1467,7 @@
         
         state.acceptedPlans.forEach(plan => {
             const li = document.createElement('li');
-            li.innerHTML = `<span><strong>${plan.title}</strong></span> <span style="color:var(--mg-accent); font-size:12px;">${plan.type}</span>`;
+            li.innerHTML = `<span><strong>${plan.title}</strong></span> <span style="color:var(--mg-accent); font-size:12px;">${plan.type || plan.category || 'General'}</span>`;
             agendaContainer.appendChild(li);
         });
 
@@ -1541,28 +1554,31 @@
             eventDate.setDate(startDate.getDate() + index);
             eventDate.setHours(18, 0, 0, 0);
 
-            const drillDurationMins = parseInt(plan.time, 10) || 60;
+            const rawDuration = String(plan.time || plan.duration || '60');
+            const parsedDurationMatch = rawDuration.match(/\d+/);
+            const drillDurationMins = parsedDurationMatch ? parseInt(parsedDurationMatch[0], 10) : 60;
             const endDate = new Date(eventDate.getTime() + drillDurationMins * 60 * 1000);
 
             const uid = `drill-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}@fireplanner.local`;
 
-            const rawItems = plan.rawEquipment || plan.rawIngredients || [];
+            const rawItems = plan.rawEquipment || plan.equipment || plan.rawIngredients || [];
             const equipment = rawItems
                 .map(eq => `• ${scaleEquipmentLine(eq, config.multiplier)}`)
                 .join('\n');
 
-            const method = (plan.method || [])
+            const method = (plan.method || plan.procedure || plan.steps || [])
                 .map((step, i) => `${i + 1}. ${step}`)
                 .join('\n');
 
-            const description = `DRILL DURATION: ${plan.time || '--'} mins\nCATEGORY: ${plan.type || 'General'}\nCREW SCALE: ${config.multiplier}x\n\nREQUIRED EQUIPMENT & STORES:\n${equipment}\n\nDRILL METHOD & PROCEDURES:\n${method}`;
+            const categoryName = plan.type || plan.category || 'General';
+            const description = `DRILL DURATION: ${drillDurationMins} mins\nCATEGORY: ${categoryName}\nCREW SCALE: ${config.multiplier}x\n\nREQUIRED EQUIPMENT & STORES:\n${equipment}\n\nDRILL METHOD & PROCEDURES:\n${method}`;
 
             icsContent.push('BEGIN:VEVENT');
             icsContent.push(`UID:${uid}`);
             icsContent.push(`DTSTAMP:${dtstamp}`);
             icsContent.push(`DTSTART:${formatICSDate(eventDate)}`);
             icsContent.push(`DTEND:${formatICSDate(endDate)}`);
-            icsContent.push(`SUMMARY:${escapeICS(`Drill: [${plan.type}] ${plan.title}`)}`);
+            icsContent.push(`SUMMARY:${escapeICS(`Drill: [${categoryName}] ${plan.title}`)}`);
             icsContent.push(`DESCRIPTION:${escapeICS(description)}`);
             icsContent.push('STATUS:CONFIRMED');
             icsContent.push('END:VEVENT');
@@ -1607,8 +1623,8 @@
                 li.className = 'favorite-item';
                 li.innerHTML = `
                     <div>
-                        <img src="${fav.image}" alt="img">
-                        <span>${fav.title}</span>
+                        <img src="${fav.image || ''}" alt="img">
+                        <span>${fav.title || 'Untitled Drill'}</span>
                     </div>
                 `;
                 listContainer.appendChild(li);
@@ -1626,11 +1642,11 @@
         if (state.currentPlanIndex >= plans.length) return;
         const plan = plans[state.currentPlanIndex];
         
-        document.getElementById('modal-title').innerText = plan.title;
+        document.getElementById('modal-title').innerText = plan.title || 'Drill Details';
         
         const eqList = document.getElementById('modal-equipment');
         eqList.innerHTML = '';
-        const rawItems = plan.rawEquipment || plan.rawIngredients || [];
+        const rawItems = plan.rawEquipment || plan.equipment || plan.rawIngredients || [];
         rawItems.forEach(eq => {
             const li = document.createElement('li');
             li.innerText = scaleEquipmentLine(eq, config.multiplier);
@@ -1639,7 +1655,8 @@
 
         const methodList = document.getElementById('modal-method');
         methodList.innerHTML = '';
-        (plan.method || []).forEach(step => {
+        const steps = plan.method || plan.procedure || plan.steps || [];
+        steps.forEach(step => {
             const li = document.createElement('li');
             li.innerText = step;
             methodList.appendChild(li);
