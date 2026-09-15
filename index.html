@@ -873,7 +873,7 @@
 
                     <div class="plan-pill-actions">
                         <button class="pill-btn" onclick="triggerSwipe('reject')" title="Dismiss drill">
-                            <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                            <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
                             <span>Dismiss</span>
                         </button>
                         <button class="pill-btn" onclick="triggerSwipe('favorite')" title="Save drill as priority">
@@ -933,7 +933,7 @@
         <h3 id="modal-title">Drill Details</h3>
         <h4>Required Stores &amp; Equipment</h4>
         <ul id="modal-equipment"></ul>
-        <h4>Drill Procedure &amp; Method</h4>
+        <h4 id="modal-method-title">Key Learning Points &amp; Procedures</h4>
         <ol id="modal-method"></ol>
         <button id="wakelock-btn" class="wakelock-btn" onclick="toggleWakeLock()">Keep Screen On: Off</button>
     </div>
@@ -956,9 +956,11 @@
         if (!introOverlay || introOverlay.style.display === 'none') return;
         
         if (introVideo) {
-            introVideo.pause();
-            introVideo.removeAttribute('src');
-            introVideo.load();
+            try {
+                introVideo.pause();
+                introVideo.removeAttribute('src');
+                introVideo.load();
+            } catch(e) {}
         }
         
         introOverlay.style.opacity = '0';
@@ -1017,7 +1019,7 @@
         },
         {
             name: 'General Stores & Consumables',
-            pattern: /\b(first aid|casualty|dummy|tarpaulin|chalk|cones|barricade|radio|torch|halogen|blanket|spill kit|absorbent)\b/i
+            pattern: /\b(first aid|casualty|dummy|tarpaulin|chalk|cones|barricade|radio|torch|halogen|blanket|spill kit|absorbent|presentation|course material|manual|projector)\b/i
         }
     ];
 
@@ -1043,7 +1045,7 @@
         const match = str.match(regex);
 
         if (!match || !match[1]) {
-            return { qty: 0, unit: '', item: str.trim(), original: rawStr };
+            return { qty: 0, unit: '', item: str.trim(), displayItem: str.trim(), original: rawStr };
         }
 
         let qty = 0;
@@ -1112,33 +1114,67 @@
         return `${scaledQty} ${match[2]}`.trim();
     }
 
+    function extractSteps(plan) {
+        if (!plan) return [];
+        if (Array.isArray(plan.klps) && plan.klps.length > 0) {
+            return plan.klps.map(k => typeof k === 'string' ? k : `${k.number ? k.number + ' ' : ''}${k.description || ''}`.trim());
+        }
+        if (Array.isArray(plan.method) && plan.method.length > 0) return plan.method;
+        if (Array.isArray(plan.procedure) && plan.procedure.length > 0) return plan.procedure;
+        if (Array.isArray(plan.steps) && plan.steps.length > 0) return plan.steps;
+        return [];
+    }
+
+    function extractEquipment(plan) {
+        if (!plan) return [];
+        return plan.equipment || plan.rawEquipment || plan.rawIngredients || [];
+    }
+
+    function extractDuration(plan) {
+        const raw = String(plan.time || plan.duration || '45');
+        const match = raw.match(/\d+/);
+        return match ? parseInt(match[0], 10) : 45;
+    }
+
     async function loadTrainingDatabase() {
         try {
-            const manifestRes = await fetch('Cards/cards.json');
+            let manifestRes = await fetch('Cards/cards.json');
+            if (!manifestRes.ok) {
+                manifestRes = await fetch('cards.json');
+            }
             if (!manifestRes.ok) throw new Error(`Manifest load failed: HTTP ${manifestRes.status}`);
+            
             const cardPaths = await manifestRes.json();
             
             const cardPromises = cardPaths.map(async itemPath => {
                 const cleanFilename = itemPath.replace(/^(\.\/)?(Cards\/)?/i, '');
-                const cardUrl = `Cards/${cleanFilename}`;
+                let cardUrl = `Cards/${cleanFilename}`;
+                
                 try {
-                    const res = await fetch(cardUrl);
+                    let res = await fetch(cardUrl);
                     if (!res.ok) {
-                        console.error(`HTTP ${res.status} on ${cardUrl}`);
+                        res = await fetch(cleanFilename);
+                    }
+                    if (!res.ok) {
+                        console.error(`HTTP ${res.status} retrieving ${cleanFilename}`);
                         return null;
                     }
-                    return await res.json();
+                    const data = await res.json();
+                    if (!data.id) {
+                        data.id = cleanFilename.replace(/\.json$/i, '');
+                    }
+                    return data;
                 } catch (e) {
-                    console.error(`Error loading ${cardUrl}:`, e);
+                    console.error(`Fetch error on ${cleanFilename}:`, e);
                     return null;
                 }
             });
             
             const results = await Promise.all(cardPromises);
             trainingDatabase = results.filter(item => item !== null);
-            console.log(`Successfully loaded ${trainingDatabase.length} drill cards.`);
+            console.log(`Cards successfully loaded: ${trainingDatabase.length}`);
         } catch (err) {
-            console.error("Initialization error loading training plans:", err);
+            console.error("Initialization error loading drill manifest:", err);
         }
     }
 
@@ -1155,6 +1191,12 @@
                     dismissIntro();
                 });
             }
+
+            setTimeout(() => {
+                if (introOverlay && introOverlay.style.display !== 'none' && introVideo.paused) {
+                    dismissIntro();
+                }
+            }, 1200);
         } else {
             dismissIntro();
         }
@@ -1282,7 +1324,7 @@
             state.acceptedDrills++;
             state.acceptedPlans.push(plan);
             
-            const rawItems = plan.rawEquipment || plan.equipment || plan.rawIngredients || [];
+            const rawItems = extractEquipment(plan);
             rawItems.forEach(rawEq => {
                 const parsed = parseEquipmentString(rawEq);
                 const scaledQty = parsed.qty * config.multiplier;
@@ -1360,7 +1402,7 @@
         }
 
         if (trainingDatabase.length === 0) {
-            alert("No training drill data available. Ensure your server is active and Cards/cards.json is accessible.");
+            alert("No training drill data available. Ensure your server is active and cards.json is accessible.");
             return;
         }
 
@@ -1380,13 +1422,10 @@
         }
 
         const filtered = trainingDatabase.filter(r => {
-            const rawCategory = (r.category || r.type || r.discipline || '').toLowerCase().trim();
+            const rawCategory = (r.category || r.type || r.discipline || 'General').toLowerCase().trim();
             const matchesCategory = config.categories.includes(rawCategory);
             
-            const rawDuration = String(r.time || r.duration || '0');
-            const parsedDurationMatch = rawDuration.match(/\d+/);
-            const time = parsedDurationMatch ? parseInt(parsedDurationMatch[0], 10) : 0;
-
+            const time = extractDuration(r);
             let bracket = 'quick';
             if (time >= 60) {
                 bracket = 'long';
@@ -1443,23 +1482,27 @@
         const plan = plans[index];
 
         const imgEl = pageEl.querySelector('.plan-image');
-        if (imgEl) imgEl.src = plan.image || '';
+        if (imgEl) {
+            imgEl.src = plan.image || '';
+            imgEl.style.display = plan.image ? 'block' : 'none';
+        }
 
         const thumbEl = pageEl.querySelector('.plan-image-thumb');
-        if (thumbEl) thumbEl.src = plan.image || '';
+        if (thumbEl) {
+            thumbEl.src = plan.image || '';
+            thumbEl.style.display = plan.image ? 'block' : 'none';
+        }
 
         const titleEl = pageEl.querySelector('.plan-title');
         if (titleEl) titleEl.innerText = plan.title || 'Untitled Drill';
 
         const timeEl = pageEl.querySelector('.plan-time');
         if (timeEl) {
-            const rawDuration = String(plan.time || plan.duration || '--');
-            const durationClean = rawDuration.match(/\d+/) ? `${rawDuration.match(/\d+/)[0]} mins` : rawDuration;
-            timeEl.innerText = durationClean;
+            timeEl.innerText = `${extractDuration(plan)} mins`;
         }
 
         const tagEl = pageEl.querySelector('.plan-tag');
-        if (tagEl) tagEl.innerText = plan.category || plan.type || 'Drill';
+        if (tagEl) tagEl.innerText = plan.category || plan.type || 'ARFF';
 
         const progressEl = pageEl.querySelector('.plan-progress');
         if (progressEl) {
@@ -1467,7 +1510,7 @@
         }
 
         const subHeadline = pageEl.querySelector('.plan-sub-headline');
-        if (subHeadline) subHeadline.innerText = plan.title || 'View Equipment & Steps';
+        if (subHeadline) subHeadline.innerText = plan.title || 'View Key Learning Points & Kit';
     }
 
     function finalizePlan() {
@@ -1494,9 +1537,9 @@
 
             const lineText = entry.totalQty > 0 
                 ? `${Math.round(entry.totalQty * 100) / 100} ${entry.unit ? entry.unit + ' ' : ''}${label}`.trim()
-                : entry.rawFallback;
+                : (entry.rawFallback || entry.displayItem || entry.item);
 
-            const department = classifyEquipment(entry.item || entry.rawFallback);
+            const department = classifyEquipment(entry.item || entry.rawFallback || entry.displayItem || '');
             if (!categoryBuckets[department]) categoryBuckets[department] = [];
             categoryBuckets[department].push(lineText);
         });
@@ -1563,24 +1606,23 @@
             eventDate.setDate(startDate.getDate() + index);
             eventDate.setHours(18, 0, 0, 0);
 
-            const rawDuration = String(plan.time || plan.duration || '60');
-            const parsedDurationMatch = rawDuration.match(/\d+/);
-            const drillDurationMins = parsedDurationMatch ? parseInt(parsedDurationMatch[0], 10) : 60;
+            const drillDurationMins = extractDuration(plan);
             const endDate = new Date(eventDate.getTime() + drillDurationMins * 60 * 1000);
 
             const uid = `drill-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}@fireplanner.local`;
 
-            const rawItems = plan.rawEquipment || plan.equipment || plan.rawIngredients || [];
-            const equipment = rawItems
-                .map(eq => `• ${scaleEquipmentLine(eq, config.multiplier)}`)
-                .join('\n');
+            const rawItems = extractEquipment(plan);
+            const equipment = rawItems.length > 0 
+                ? rawItems.map(eq => `• ${scaleEquipmentLine(eq, config.multiplier)}`).join('\n')
+                : '• Standard issue';
 
-            const method = (plan.method || plan.procedure || plan.steps || [])
-                .map((step, i) => `${i + 1}. ${step}`)
-                .join('\n');
+            const steps = extractSteps(plan);
+            const method = steps.length > 0 
+                ? steps.map((step, i) => `${i + 1}. ${step}`).join('\n')
+                : '• Refer to standard drill syllabus';
 
             const categoryName = plan.category || plan.type || 'General';
-            const description = `DRILL DURATION: ${drillDurationMins} mins\nCATEGORY: ${categoryName}\nCREW SCALE: ${config.multiplier}x\n\nREQUIRED EQUIPMENT & STORES:\n${equipment}\n\nDRILL METHOD & PROCEDURES:\n${method}`;
+            const description = `DRILL DURATION: ${drillDurationMins} mins\nCATEGORY: ${categoryName}\nCREW SCALE: ${config.multiplier}x\n\nREQUIRED EQUIPMENT & STORES:\n${equipment}\n\nKEY LEARNING POINTS / PROCEDURES:\n${method}`;
 
             icsContent.push('BEGIN:VEVENT');
             icsContent.push(`UID:${uid}`);
@@ -1632,7 +1674,7 @@
                 li.className = 'favorite-item';
                 li.innerHTML = `
                     <div>
-                        <img src="${fav.image || ''}" alt="img">
+                        ${fav.image ? `<img src="${fav.image}" alt="img">` : ''}
                         <span>${fav.title || 'Untitled Drill'}</span>
                     </div>
                 `;
@@ -1655,21 +1697,38 @@
         
         const eqList = document.getElementById('modal-equipment');
         eqList.innerHTML = '';
-        const rawItems = plan.rawEquipment || plan.equipment || plan.rawIngredients || [];
-        rawItems.forEach(eq => {
+        const rawItems = extractEquipment(plan);
+        if (rawItems.length === 0) {
             const li = document.createElement('li');
-            li.innerText = scaleEquipmentLine(eq, config.multiplier);
+            li.innerText = 'Standard training equipment';
             eqList.appendChild(li);
-        });
+        } else {
+            rawItems.forEach(eq => {
+                const li = document.createElement('li');
+                li.innerText = scaleEquipmentLine(eq, config.multiplier);
+                eqList.appendChild(li);
+            });
+        }
 
         const methodList = document.getElementById('modal-method');
         methodList.innerHTML = '';
-        const steps = plan.method || plan.procedure || plan.steps || [];
-        steps.forEach(step => {
+        const steps = extractSteps(plan);
+        if (steps.length === 0) {
             const li = document.createElement('li');
-            li.innerText = step;
+            li.innerText = 'Follow standard operational training guidance.';
             methodList.appendChild(li);
-        });
+        } else {
+            steps.forEach(step => {
+                const li = document.createElement('li');
+                li.innerText = step;
+                methodList.appendChild(li);
+            });
+        }
+
+        const methodTitle = document.getElementById('modal-method-title');
+        if (methodTitle) {
+            methodTitle.innerText = plan.klps ? 'Key Learning Points (KLPs)' : 'Drill Procedure & Method';
+        }
 
         updateWakeLockUI();
         document.getElementById('info-modal').style.display = 'block';
