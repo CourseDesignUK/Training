@@ -734,7 +734,7 @@
 
 <div id="intro-overlay">
     <button id="skip-intro-btn" onclick="dismissIntro()">Skip</button>
-    <video id="intro-video" src="intro.mp4" playsinline muted autoplay preload="auto"></video>
+    <video id="intro-video" src="intro.mp4" playsinline muted autoplay preload="auto" onerror="dismissIntro()"></video>
 </div>
 
 <div id="portrait-warning">
@@ -767,11 +767,11 @@
 
         <label>Disciplines &amp; Categories</label>
         <div id="plan-categories" class="checkbox-group">
-            <label><input type="checkbox" value="ARFF" checked> ARFF</label>
-            <label><input type="checkbox" value="Structural" checked> Structural</label>
-            <label><input type="checkbox" value="BA" checked> BA</label>
-            <label><input type="checkbox" value="General" checked> General</label>
-            <label><input type="checkbox" value="RTC" checked> RTC</label>
+            <label><input type="checkbox" value="arff" checked> ARFF</label>
+            <label><input type="checkbox" value="structural" checked> Structural</label>
+            <label><input type="checkbox" value="ba" checked> BA</label>
+            <label><input type="checkbox" value="general" checked> General</label>
+            <label><input type="checkbox" value="rtc" checked> RTC</label>
         </div>
         
         <button id="start-btn" onclick="startPlanning()">Start Swiping</button>
@@ -873,7 +873,7 @@
 
                     <div class="plan-pill-actions">
                         <button class="pill-btn" onclick="triggerSwipe('reject')" title="Dismiss drill">
-                            <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                            <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
                             <span>Dismiss</span>
                         </button>
                         <button class="pill-btn" onclick="triggerSwipe('favorite')" title="Save drill as priority">
@@ -1123,16 +1123,20 @@
                 const cardUrl = `Cards/${cleanFilename}`;
                 try {
                     const res = await fetch(cardUrl);
-                    if (!res.ok) return null;
+                    if (!res.ok) {
+                        console.error(`HTTP ${res.status} on ${cardUrl}`);
+                        return null;
+                    }
                     return await res.json();
                 } catch (e) {
+                    console.error(`Error loading ${cardUrl}:`, e);
                     return null;
                 }
             });
             
             const results = await Promise.all(cardPromises);
             trainingDatabase = results.filter(item => item !== null);
-            console.log(`Loaded ${trainingDatabase.length} drills from Cards/cards.json`);
+            console.log(`Successfully loaded ${trainingDatabase.length} drill cards.`);
         } catch (err) {
             console.error("Initialization error loading training plans:", err);
         }
@@ -1143,11 +1147,16 @@
 
         if (introVideo) {
             introVideo.addEventListener('ended', dismissIntro);
+            introVideo.addEventListener('error', dismissIntro);
             
             const playPromise = introVideo.play();
             if (playPromise !== undefined) {
-                playPromise.catch(() => {});
+                playPromise.catch(() => {
+                    dismissIntro();
+                });
             }
+        } else {
+            dismissIntro();
         }
     });
 
@@ -1357,7 +1366,7 @@
 
         config.days = parseInt(document.getElementById('days').value, 10) || 5;
         config.multiplier = parseFloat(document.getElementById('crew-multiplier').value) || 1;
-        config.categories = Array.from(document.querySelectorAll('#plan-categories input:checked')).map(cb => cb.value.toLowerCase());
+        config.categories = Array.from(document.querySelectorAll('#plan-categories input:checked')).map(cb => cb.value.toLowerCase().trim());
         config.drillTimes = Array.from(document.querySelectorAll('#drill-time-filters input:checked')).map(cb => cb.value);
         
         if (config.categories.length === 0) {
@@ -1371,8 +1380,8 @@
         }
 
         const filtered = trainingDatabase.filter(r => {
-            const rawType = (r.type || r.category || '').toLowerCase().trim();
-            const matchesCategory = config.categories.includes(rawType);
+            const rawCategory = (r.category || r.type || r.discipline || '').toLowerCase().trim();
+            const matchesCategory = config.categories.includes(rawCategory);
             
             const rawDuration = String(r.time || r.duration || '0');
             const parsedDurationMatch = rawDuration.match(/\d+/);
@@ -1450,7 +1459,7 @@
         }
 
         const tagEl = pageEl.querySelector('.plan-tag');
-        if (tagEl) tagEl.innerText = plan.type || plan.category || 'Drill';
+        if (tagEl) tagEl.innerText = plan.category || plan.type || 'Drill';
 
         const progressEl = pageEl.querySelector('.plan-progress');
         if (progressEl) {
@@ -1467,7 +1476,7 @@
         
         state.acceptedPlans.forEach(plan => {
             const li = document.createElement('li');
-            li.innerHTML = `<span><strong>${plan.title}</strong></span> <span style="color:var(--mg-accent); font-size:12px;">${plan.type || plan.category || 'General'}</span>`;
+            li.innerHTML = `<span><strong>${plan.title}</strong></span> <span style="color:var(--mg-accent); font-size:12px;">${plan.category || plan.type || 'General'}</span>`;
             agendaContainer.appendChild(li);
         });
 
@@ -1570,7 +1579,7 @@
                 .map((step, i) => `${i + 1}. ${step}`)
                 .join('\n');
 
-            const categoryName = plan.type || plan.category || 'General';
+            const categoryName = plan.category || plan.type || 'General';
             const description = `DRILL DURATION: ${drillDurationMins} mins\nCATEGORY: ${categoryName}\nCREW SCALE: ${config.multiplier}x\n\nREQUIRED EQUIPMENT & STORES:\n${equipment}\n\nDRILL METHOD & PROCEDURES:\n${method}`;
 
             icsContent.push('BEGIN:VEVENT');
