@@ -1,0 +1,34 @@
+{
+  "title": "Ejection Seats",
+  "category": "ARFF",
+  "klps": [
+    {
+      "number": "2.5.11.1",
+      "description": "State the purpose of an ejection seat."
+    },
+    {
+      "number": "2.5.11.2",
+      "description": "Describe the markings on aircraft."
+    },
+    {
+      "number": "2.5.11.3",
+      "description": "Explain the hazards associated with ejection seats."
+    },
+    {
+      "number": "2.5.11.4",
+      "description": "State the four main stages of release of occupant."
+    },
+    {
+      "number": "2.5.11.5",
+      "description": "Describe the releasing sequence."
+    },
+    {
+      "number": "2.5.11.6",
+      "description": "Identify the main components of an ejection seat."
+    }
+  ],
+  "equipment": [
+    "IT presentation equipment",
+    "Copy of course material"
+  ]
+}
