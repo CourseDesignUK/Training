@@ -734,7 +734,9 @@
 
 <div id="intro-overlay">
     <button id="skip-intro-btn" onclick="dismissIntro()">Skip</button>
-    <video id="intro-video" src="intro.mp4" playsinline muted autoplay preload="auto"></video>
+    <video id="intro-video" playsinline muted autoplay preload="auto">
+        <source src="intro.mp4" type="video/mp4">
+    </video>
 </div>
 
 <div id="portrait-warning">
@@ -779,7 +781,6 @@
     </div>
 
     <div id="swipe-screen" class="screen">
-        <!-- Next Card Layer -->
         <div id="page-next" class="swipe-page">
             <div class="card-nav-bar">
                 <button class="circle-icon-btn" disabled title="Undo">&#8249;</button>
@@ -836,7 +837,6 @@
             </div>
         </div>
 
-        <!-- Current Active Card Layer -->
         <div id="page-current" class="swipe-page">
             <div class="swipe-stamp stamp-dismiss" id="stamp-dismiss">Dismiss</div>
             <div class="swipe-stamp stamp-save" id="stamp-save">Save</div>
@@ -953,8 +953,9 @@
     const introVideo = document.getElementById('intro-video');
 
     function dismissIntro() {
-        if (!introOverlay || introOverlay.style.display === 'none') return;
-        
+        if (!introOverlay || introOverlay.dataset.dismissed === 'true') return;
+        introOverlay.dataset.dismissed = 'true';
+
         if (introVideo) {
             introVideo.pause();
             introVideo.removeAttribute('src');
@@ -1001,7 +1002,7 @@
         },
         {
             name: 'Breathing Apparatus & Gas',
-            pattern: /\b(cylinder|ba set|facemask|tally|board|guide line|telemetry|distress|adsu|dsu|resuscitator|smoke|gas monitor|thermal imaging|tic)\b/i
+            pattern: /\b(cylinder|ba set|facemask|tally|board|guide line|telemetry|distress|adsu|dsu|resuscitator|smoke|gas monitor|thermal imaging|tic|breathing apparatus)\b/i
         },
         {
             name: 'RTC & Extrication Gear',
@@ -1017,7 +1018,7 @@
         },
         {
             name: 'General Stores & Consumables',
-            pattern: /\b(first aid|casualty|dummy|tarpaulin|chalk|cones|barricade|radio|torch|halogen|blanket|spill kit|absorbent)\b/i
+            pattern: /\b(first aid|casualty|dummy|tarpaulin|chalk|cones|barricade|radio|torch|halogen|blanket|spill kit|absorbent|ppe|presentation|course material|props)\b/i
         }
     ];
 
@@ -1114,10 +1115,12 @@
 
     async function loadTrainingDatabase() {
         try {
-            // Attempt primary manifest path, fallback to single card.json if cards.json is not present
             let manifestRes = await fetch('Cards/cards.json');
             if (!manifestRes.ok) {
                 manifestRes = await fetch('Cards/card.json');
+            }
+            if (!manifestRes.ok) {
+                manifestRes = await fetch('cards.json');
             }
             if (!manifestRes.ok) throw new Error(`Manifest load failed: HTTP ${manifestRes.status}`);
             
@@ -1125,14 +1128,31 @@
             
             const cardPromises = cardPaths.map(async itemPath => {
                 const cleanFilename = itemPath.replace(/^(\.\/)?(Cards\/)?/i, '');
-                const cardUrl = `Cards/${cleanFilename}`;
-                const res = await fetch(cardUrl);
+                let res = await fetch(`Cards/${cleanFilename}`);
+                if (!res.ok) {
+                    res = await fetch(cleanFilename);
+                }
                 if (!res.ok) return null;
                 return res.json();
             });
             
             const results = await Promise.all(cardPromises);
-            trainingDatabase = results.filter(item => item !== null);
+            trainingDatabase = results
+                .filter(item => item !== null)
+                .map((item, idx) => {
+                    const rawEquip = item.equipment_list || item.rawEquipment || item.equipment || item.rawIngredients || [];
+                    const procedures = item.method || (item.klp || item.klps || []).map(k => `[${k.number}] ${k.performance || k.description}`);
+
+                    return {
+                        id: item.id || `drill-${idx}`,
+                        title: item.title || item.name || 'Untitled Drill',
+                        category: item.category || item.type || 'ARFF',
+                        time: parseInt(item.time || item.duration || 45, 10),
+                        rawEquipment: rawEquip,
+                        method: procedures,
+                        image: item.image || ''
+                    };
+                });
         } catch (err) {
             console.error("Initialization error loading training plans:", err);
         }
@@ -1143,13 +1163,22 @@
 
         if (introVideo) {
             introVideo.addEventListener('ended', dismissIntro);
+            introVideo.addEventListener('error', dismissIntro);
             
             const playPromise = introVideo.play();
             if (playPromise !== undefined) {
                 playPromise.catch(() => {
-                    // Autoplay prevented by browser
+                    dismissIntro();
                 });
             }
+
+            setTimeout(() => {
+                if (introOverlay && introOverlay.style.display !== 'none') {
+                    dismissIntro();
+                }
+            }, 3500);
+        } else {
+            dismissIntro();
         }
     });
 
@@ -1275,7 +1304,7 @@
             state.acceptedDrills++;
             state.acceptedPlans.push(plan);
             
-            const rawItems = plan.rawEquipment || plan.equipment || plan.rawIngredients || [];
+            const rawItems = plan.rawEquipment || [];
             rawItems.forEach(rawEq => {
                 const parsed = parseEquipmentString(rawEq);
                 const scaledQty = parsed.qty * config.multiplier;
@@ -1353,7 +1382,7 @@
         }
 
         if (trainingDatabase.length === 0) {
-            alert("No training drill data available. Check console network responses for cards.json (or card.json) and card items.");
+            alert("No training drill data available. Ensure JSON files exist in the Cards directory and that a local web server is running.");
             return;
         }
 
@@ -1373,10 +1402,10 @@
         }
 
         const filtered = trainingDatabase.filter(r => {
-            const planCategory = r.category || r.type;
+            const planCategory = r.category || 'ARFF';
             const matchesCategory = config.categories.includes(planCategory);
             
-            const time = parseInt(r.time || r.duration, 10) || 45;
+            const time = r.time || 45;
             let bracket = 'quick';
             if (time >= 60) {
                 bracket = 'long';
@@ -1437,13 +1466,13 @@
         if (thumbEl) thumbEl.src = plan.image || '';
 
         const titleEl = pageEl.querySelector('.plan-title');
-        if (titleEl) titleEl.innerText = plan.title || 'Untitled Drill';
+        if (titleEl) titleEl.innerText = plan.title;
 
         const timeEl = pageEl.querySelector('.plan-time');
-        if (timeEl) timeEl.innerText = `${plan.time || plan.duration || 45} mins`;
+        if (timeEl) timeEl.innerText = `${plan.time} mins`;
 
         const tagEl = pageEl.querySelector('.plan-tag');
-        if (tagEl) tagEl.innerText = plan.category || plan.type || 'Drill';
+        if (tagEl) tagEl.innerText = plan.category;
 
         const progressEl = pageEl.querySelector('.plan-progress');
         if (progressEl) {
@@ -1451,7 +1480,7 @@
         }
 
         const subHeadline = pageEl.querySelector('.plan-sub-headline');
-        if (subHeadline) subHeadline.innerText = plan.title || 'View Objectives & Kit List';
+        if (subHeadline) subHeadline.innerText = plan.title;
     }
 
     function finalizePlan() {
@@ -1460,8 +1489,7 @@
         
         state.acceptedPlans.forEach(plan => {
             const li = document.createElement('li');
-            const categoryName = plan.category || plan.type || 'Drill';
-            li.innerHTML = `<span><strong>${plan.title}</strong></span> <span style="color:var(--mg-accent); font-size:12px;">${categoryName}</span>`;
+            li.innerHTML = `<span><strong>${plan.title}</strong></span> <span style="color:var(--mg-accent); font-size:12px;">${plan.category}</span>`;
             agendaContainer.appendChild(li);
         });
 
@@ -1548,32 +1576,28 @@
             eventDate.setDate(startDate.getDate() + index);
             eventDate.setHours(18, 0, 0, 0);
 
-            const drillDurationMins = parseInt(plan.time || plan.duration, 10) || 45;
+            const drillDurationMins = plan.time || 45;
             const endDate = new Date(eventDate.getTime() + drillDurationMins * 60 * 1000);
 
             const uid = `drill-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}@fireplanner.local`;
 
-            const rawItems = plan.rawEquipment || plan.equipment || plan.rawIngredients || [];
+            const rawItems = plan.rawEquipment || [];
             const equipment = rawItems
                 .map(eq => `• ${scaleEquipmentLine(eq, config.multiplier)}`)
                 .join('\n');
 
-            let procedureText = '';
-            if (plan.method && plan.method.length > 0) {
-                procedureText = plan.method.map((step, i) => `${i + 1}. ${step}`).join('\n');
-            } else if (plan.klps && plan.klps.length > 0) {
-                procedureText = plan.klps.map(k => `• [${k.number}] ${k.description}`).join('\n');
-            }
+            const procedureText = (plan.method && plan.method.length > 0)
+                ? plan.method.map((step, i) => `${i + 1}. ${step}`).join('\n')
+                : '';
 
-            const planCategory = plan.category || plan.type || 'General';
-            const description = `DRILL DURATION: ${drillDurationMins} mins\nCATEGORY: ${planCategory}\nCREW SCALE: ${config.multiplier}x\n\nREQUIRED EQUIPMENT & STORES:\n${equipment}\n\nKEY LEARNING POINTS & PROCEDURES:\n${procedureText}`;
+            const description = `DRILL DURATION: ${drillDurationMins} mins\nCATEGORY: ${plan.category}\nCREW SCALE: ${config.multiplier}x\n\nREQUIRED EQUIPMENT & STORES:\n${equipment}\n\nKEY LEARNING POINTS & PROCEDURES:\n${procedureText}`;
 
             icsContent.push('BEGIN:VEVENT');
             icsContent.push(`UID:${uid}`);
             icsContent.push(`DTSTAMP:${dtstamp}`);
             icsContent.push(`DTSTART:${formatICSDate(eventDate)}`);
             icsContent.push(`DTEND:${formatICSDate(endDate)}`);
-            icsContent.push(`SUMMARY:${escapeICS(`Drill: [${planCategory}] ${plan.title}`)}`);
+            icsContent.push(`SUMMARY:${escapeICS(`Drill: [${plan.category}] ${plan.title}`)}`);
             icsContent.push(`DESCRIPTION:${escapeICS(description)}`);
             icsContent.push('STATUS:CONFIRMED');
             icsContent.push('END:VEVENT');
@@ -1641,7 +1665,7 @@
         
         const eqList = document.getElementById('modal-equipment');
         eqList.innerHTML = '';
-        const rawItems = plan.rawEquipment || plan.equipment || plan.rawIngredients || [];
+        const rawItems = plan.rawEquipment || [];
         if (rawItems.length === 0) {
             const li = document.createElement('li');
             li.innerText = "No specific stores required.";
@@ -1660,12 +1684,6 @@
             plan.method.forEach(step => {
                 const li = document.createElement('li');
                 li.innerText = step;
-                methodList.appendChild(li);
-            });
-        } else if (plan.klps && plan.klps.length > 0) {
-            plan.klps.forEach(klp => {
-                const li = document.createElement('li');
-                li.innerText = `${klp.number}: ${klp.description}`;
                 methodList.appendChild(li);
             });
         } else {
