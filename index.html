@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, shrink-to-fit=no, viewport-fit=cover">
-<title>Training Planner</title>
+<title>Meal Planner</title>
 <style>
     :root {
         --mg-bg: #0f1210;
@@ -358,11 +358,11 @@
         text-align: left;
     }
 
-    .plan-header-block {
+    .recipe-header-block {
         margin-bottom: 12px;
     }
-    .card h3.plan-title {
-        font-size: 22px;
+    .card h3.recipe-title {
+        font-size: 24px;
         font-weight: 700;
         line-height: 1.15;
         letter-spacing: -0.5px;
@@ -372,7 +372,7 @@
         border: none;
         padding: 0;
     }
-    .plan-meta-author {
+    .recipe-meta-author {
         font-size: 13px;
         color: var(--mg-text-muted);
         margin: 0;
@@ -380,7 +380,7 @@
         text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
     }
 
-    .plan-metrics-grid {
+    .recipe-metrics-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         padding: 10px 0;
@@ -407,7 +407,7 @@
         text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
     }
 
-    .plan-pill-actions {
+    .recipe-pill-actions {
         display: flex;
         gap: 8px;
         margin-bottom: 12px;
@@ -545,7 +545,7 @@
     .favorite-item img { width: 44px; height: 44px; border-radius: 8px; margin-right: 12px; object-fit: cover; }
     .favorite-item div { display: flex; align-items: center; }
 
-    .category-title {
+    .aisle-title {
         font-size: 12px;
         font-weight: 700;
         text-transform: uppercase;
@@ -696,7 +696,7 @@
             color: #000 !important;
         }
 
-        .category-title {
+        .aisle-title {
             background: none !important;
             border-bottom: 1px solid #bbb !important;
             border-left: none !important;
@@ -734,9 +734,7 @@
 
 <div id="intro-overlay">
     <button id="skip-intro-btn" onclick="dismissIntro()">Skip</button>
-    <video id="intro-video" playsinline muted autoplay preload="auto">
-        <source src="intro.mp4" type="video/mp4">
-    </video>
+    <video id="intro-video" src="intro.mp4" playsinline muted autoplay preload="auto"></video>
 </div>
 
 <div id="portrait-warning">
@@ -747,40 +745,40 @@
 
 <div id="app-container">
     <div id="setup-screen" class="screen active">
-        <h2>Training Planner</h2>
+        <h2>Easy Meal Planner</h2>
         
-        <label for="days">Training Days / Drills Needed</label>
+        <label for="days">Number of days Cooking</label>
         <input type="number" id="days" value="5" min="1" max="7">
 
-        <label for="crew-multiplier">Crew Scale / Appliance Count</label>
-        <select id="crew-multiplier">
-            <option value="1" selected>Single Crew (1x Equipment)</option>
-            <option value="1.5">Watch / Multi-Team (1.5x Equipment)</option>
-            <option value="2">Two Appliances (2.0x Equipment)</option>
-            <option value="3">Station Multi-Pump Exercise (3.0x Equipment)</option>
+        <label for="portion-multiplier">Portion Scaling / Servings</label>
+        <select id="portion-multiplier">
+            <option value="1" selected>Default (1x Recipe Servings)</option>
+            <option value="1.5">Scale 1.5x (Approx 3 Servings)</option>
+            <option value="2">Scale 2.0x (Double Portions)</option>
+            <option value="3">Scale 3.0x (Family / Batch Cook)</option>
         </select>
 
-        <label>Drill Duration</label>
-        <div id="drill-time-filters" class="checkbox-group">
+        <label>Cook / Prep Time</label>
+        <div id="prep-time-filters" class="checkbox-group">
             <label><input type="checkbox" value="quick" checked> 0–30 mins</label>
             <label><input type="checkbox" value="medium" checked> 31–59 mins</label>
             <label><input type="checkbox" value="long" checked> 60+ mins</label>
         </div>
 
-        <label>Disciplines &amp; Categories</label>
-        <div id="plan-categories" class="checkbox-group">
-            <label><input type="checkbox" value="ARFF" checked> ARFF</label>
-            <label><input type="checkbox" value="Structural" checked> Structural</label>
-            <label><input type="checkbox" value="BA" checked> BA</label>
-            <label><input type="checkbox" value="General" checked> General</label>
-            <label><input type="checkbox" value="RTC" checked> RTC</label>
+        <label>Meal Categories</label>
+        <div id="meal-categories" class="checkbox-group">
+            <label><input type="checkbox" value="Main Meal" checked> Main Meal</label>
+            <label><input type="checkbox" value="Fish & Seafood" checked> Fish &amp; Seafood</label>
+            <label><input type="checkbox" value="Puddings"> Puddings</label>
+            <label><input type="checkbox" value="Cakes and treats"> Cakes &amp; Treats</label>
         </div>
         
         <button id="start-btn" onclick="startPlanning()">Start Swiping</button>
-        <button class="secondary" onclick="viewFavorites()">View Priority Drills</button>
+        <button class="secondary" onclick="viewFavorites()">View Favorites</button>
     </div>
 
     <div id="swipe-screen" class="screen">
+        <!-- Next Card Layer -->
         <div id="page-next" class="swipe-page">
             <div class="card-nav-bar">
                 <button class="circle-icon-btn" disabled title="Undo">&#8249;</button>
@@ -788,32 +786,32 @@
             </div>
 
             <div class="card">
-                <img class="card-hero-image plan-image" src="" alt="Drill Image">
+                <img class="card-hero-image recipe-image" src="" alt="Recipe Image">
                 <div class="card-content-pane">
-                    <div class="plan-header-block">
-                        <h3 class="plan-title">Loading...</h3>
-                        <p class="plan-meta-author">Operational Training Standard &bull; In House</p>
+                    <div class="recipe-header-block">
+                        <h3 class="recipe-title">Loading...</h3>
+                        <p class="recipe-meta-author">Curated Cookbook &bull; In House</p>
                     </div>
 
-                    <div class="plan-metrics-grid">
+                    <div class="recipe-metrics-grid">
                         <div class="metric-col">
-                            <span class="metric-label">Duration</span>
-                            <span class="metric-val plan-time">-- mins</span>
+                            <span class="metric-label">Cook Time</span>
+                            <span class="metric-val recipe-time">-- mins</span>
                         </div>
                         <div class="metric-col">
                             <span class="metric-label">Selected</span>
-                            <span class="metric-val plan-progress">0/5</span>
+                            <span class="metric-val recipe-progress">0/5</span>
                         </div>
                         <div class="metric-col">
-                            <span class="metric-label">Category</span>
-                            <span class="metric-val plan-tag">--</span>
+                            <span class="metric-label">Type</span>
+                            <span class="metric-val meal-tag">--</span>
                         </div>
                     </div>
 
-                    <div class="plan-pill-actions">
+                    <div class="recipe-pill-actions">
                         <button class="pill-btn" tabindex="-1">
                             <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-                            <span>Dismiss</span>
+                            <span>Nope</span>
                         </button>
                         <button class="pill-btn" tabindex="-1">
                             <svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
@@ -821,15 +819,15 @@
                         </button>
                         <button class="pill-btn" tabindex="-1">
                             <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
-                            <span>Save</span>
+                            <span>Hell Yes!</span>
                         </button>
                     </div>
 
                     <div class="story-card-link">
-                        <img class="story-thumb plan-image-thumb" src="" alt="">
+                        <img class="story-thumb recipe-image-thumb" src="" alt="">
                         <div class="story-text">
-                            <div class="story-kicker">Briefing &amp; Drill Specs</div>
-                            <div class="story-headline plan-sub-headline">Objectives &amp; Kit List</div>
+                            <div class="story-kicker">View Instructions</div>
+                            <div class="story-headline recipe-sub-headline">Method &amp; Ingredients</div>
                         </div>
                         <div class="story-chevron">&rsaquo;</div>
                     </div>
@@ -837,6 +835,7 @@
             </div>
         </div>
 
+        <!-- Current Active Card Layer -->
         <div id="page-current" class="swipe-page">
             <div class="swipe-stamp stamp-dismiss" id="stamp-dismiss">Dismiss</div>
             <div class="swipe-stamp stamp-save" id="stamp-save">Save</div>
@@ -844,53 +843,53 @@
 
             <div class="card-nav-bar">
                 <button id="undo-btn" class="circle-icon-btn" onclick="undoLastAction()" disabled title="Undo">&#8249;</button>
-                <button class="circle-icon-btn" onclick="showPlanInfo()" title="More details">&bull;&bull;&bull;</button>
+                <button class="circle-icon-btn" onclick="showRecipeInfo()" title="More details">&bull;&bull;&bull;</button>
             </div>
 
             <div class="card">
-                <img class="card-hero-image plan-image" src="" alt="Drill Image">
+                <img class="card-hero-image recipe-image" src="" alt="Recipe Image">
 
                 <div class="card-content-pane">
-                    <div class="plan-header-block">
-                        <h3 class="plan-title">Loading...</h3>
-                        <p class="plan-meta-author">Operational Training Standard &bull; In House</p>
+                    <div class="recipe-header-block">
+                        <h3 class="recipe-title">Loading...</h3>
+                        <p class="recipe-meta-author">Curated Cookbook &bull; In House</p>
                     </div>
 
-                    <div class="plan-metrics-grid">
+                    <div class="recipe-metrics-grid">
                         <div class="metric-col">
-                            <span class="metric-label">Duration</span>
-                            <span class="metric-val plan-time">-- mins</span>
+                            <span class="metric-label">Cook Time</span>
+                            <span class="metric-val recipe-time">-- mins</span>
                         </div>
                         <div class="metric-col">
                             <span class="metric-label">Selected</span>
-                            <span class="metric-val plan-progress">0/5</span>
+                            <span class="metric-val recipe-progress">0/5</span>
                         </div>
                         <div class="metric-col">
-                            <span class="metric-label">Category</span>
-                            <span class="metric-val plan-tag">--</span>
+                            <span class="metric-label">Type</span>
+                            <span class="metric-val meal-tag">--</span>
                         </div>
                     </div>
 
-                    <div class="plan-pill-actions">
-                        <button class="pill-btn" onclick="triggerSwipe('reject')" title="Dismiss drill">
+                    <div class="recipe-pill-actions">
+                        <button class="pill-btn" onclick="triggerSwipe('reject')" title="Dismiss recipe">
                             <svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
                             <span>Dismiss</span>
                         </button>
-                        <button class="pill-btn" onclick="triggerSwipe('favorite')" title="Save drill as priority">
+                        <button class="pill-btn" onclick="triggerSwipe('favorite')" title="Save to favorites">
                             <svg viewBox="0 0 24 24"><path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/></svg>
                             <span>Favorite</span>
                         </button>
-                        <button class="pill-btn" onclick="triggerSwipe('accept')" title="Save to training rota">
+                        <button class="pill-btn" onclick="triggerSwipe('accept')" title="Save to menu">
                             <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
                             <span>Save</span>
                         </button>
                     </div>
 
-                    <div class="story-card-link" onclick="showPlanInfo()">
-                        <img class="story-thumb plan-image-thumb" src="" alt="">
+                    <div class="story-card-link" onclick="showRecipeInfo()">
+                        <img class="story-thumb recipe-image-thumb" src="" alt="">
                         <div class="story-text">
-                            <div class="story-kicker">Briefing &amp; Drill Specs</div>
-                            <div class="story-headline plan-sub-headline">Objectives &amp; Kit List</div>
+                            <div class="story-kicker">View Instructions</div>
+                            <div class="story-headline recipe-sub-headline">Method &amp; Ingredients</div>
                         </div>
                         <div class="story-chevron">&rsaquo;</div>
                     </div>
@@ -900,28 +899,28 @@
     </div>
 
     <div id="summary-screen" class="screen">
-        <h2>Training Schedule Complete</h2>
+        <h2>Weekly Plan Complete</h2>
         
         <div class="print-layout">
             <div class="print-section">
-                <h3>Training Agenda</h3>
-                <ul id="training-agenda"></ul>
+                <h3>Menu Agenda</h3>
+                <ul id="meal-agenda"></ul>
             </div>
             
             <div class="print-section">
-                <h3>Consolidated Equipment &amp; Stores</h3>
-                <div id="equipment-list-grouped"></div>
+                <h3>Shopping List (Aisle Grouped)</h3>
+                <div id="shopping-list-grouped"></div>
             </div>
         </div>
         
-        <button onclick="printPlan()">Print Schedule (A4)</button>
+        <button onclick="printPlan()">Print Plan (A4)</button>
         <button class="action-btn" onclick="exportToCalendar()">Export to Calendar (.ics)</button>
-        <button class="action-btn" onclick="savePlan()">Save Schedule</button>
+        <button class="action-btn" onclick="savePlan()">Save Plan</button>
         <button class="secondary" onclick="resetApp()">Start Over</button>
     </div>
 
     <div id="favorites-screen" class="screen">
-        <h2>Priority Drills</h2>
+        <h2>Favorite Recipes</h2>
         <ul id="favorites-list"></ul>
         <button class="secondary" onclick="resetApp()">Back to Setup</button>
     </div>
@@ -929,11 +928,11 @@
 
 <div id="info-modal" class="modal">
     <div class="modal-content">
-        <span class="close-modal" onclick="closePlanInfo()">&times;</span>
-        <h3 id="modal-title">Drill Details</h3>
-        <h4>Required Stores &amp; Equipment</h4>
-        <ul id="modal-equipment"></ul>
-        <h4>Drill Procedure &amp; Method</h4>
+        <span class="close-modal" onclick="closeRecipeInfo()">&times;</span>
+        <h3 id="modal-title">Recipe Details</h3>
+        <h4>Ingredients</h4>
+        <ul id="modal-ingredients"></ul>
+        <h4>Method</h4>
         <ol id="modal-method"></ol>
         <button id="wakelock-btn" class="wakelock-btn" onclick="toggleWakeLock()">Keep Screen On: Off</button>
     </div>
@@ -953,9 +952,8 @@
     const introVideo = document.getElementById('intro-video');
 
     function dismissIntro() {
-        if (!introOverlay || introOverlay.dataset.dismissed === 'true') return;
-        introOverlay.dataset.dismissed = 'true';
-
+        if (!introOverlay || introOverlay.style.display === 'none') return;
+        
         if (introVideo) {
             introVideo.pause();
             introVideo.removeAttribute('src');
@@ -968,18 +966,18 @@
         }, 400);
     }
 
-    let trainingDatabase = [];
-    let plans = [];
-    let config = { days: 0, categories: [], multiplier: 1, drillTimes: [] };
+    let cookbookDatabase = [];
+    let recipes = [];
+    let config = { days: 0, categories: [], multiplier: 1, prepTimes: [] };
     let state = { 
-        currentPlanIndex: 0, 
-        acceptedDrills: 0, 
-        acceptedPlans: [], 
-        rejectedPlans: [], 
-        rawEquipmentList: [],
+        currentRecipeIndex: 0, 
+        acceptedMeals: 0, 
+        acceptedRecipes: [], 
+        rejectedRecipes: [], 
+        rawIngredientsList: [],
         history: []
     };
-    let favorites = JSON.parse(localStorage.getItem('firePlannerFavorites')) || [];
+    let favorites = JSON.parse(localStorage.getItem('bbcMealPlannerFavorites')) || [];
     let wakeLockSentinel = null;
     
     const pageCurrent = document.getElementById('page-current');
@@ -995,41 +993,41 @@
     let currentY = 0;
     const swipeThreshold = 80;
 
-    const EQUIPMENT_CATEGORIES = [
+    const AISLE_PATTERNS = [
         {
-            name: 'ARFF & Foam Equipment',
-            pattern: /\b(foam|aspirating|monitor|branch|turret|expansion|inductor|drum|dry chemical|aircraft|striker|hydrant|tanker)\b/i
+            name: 'Produce',
+            pattern: /\b(onion|garlic|ginger|potato|carrot|tomato|spinach|kale|salad|lettuce|lemon|lime|avocado|mushroom|bell pepper|pepper|herb|parsley|coriander|cilantro|basil|rosemary|thyme|chili|broccoli|cauliflower|zucchini|courgette|cucumber|apple|banana|berry|orange)\b/i
         },
         {
-            name: 'Breathing Apparatus & Gas',
-            pattern: /\b(cylinder|ba set|facemask|tally|board|guide line|telemetry|distress|adsu|dsu|resuscitator|smoke|gas monitor|thermal imaging|tic|breathing apparatus)\b/i
+            name: 'Meat & Seafood',
+            pattern: /\b(chicken|beef|steak|mince|pork|lamb|bacon|sausage|fish|salmon|cod|prawn|shrimp|turkey|tuna|fillet|pancetta|chorizo)\b/i
         },
         {
-            name: 'RTC & Extrication Gear',
-            pattern: /\b(cutter|spreader|ram|hydraulic|hoses|blocks|chocks|stabiliser|winch|glass master|protection sheet|spine board|cervical collar|air bag)\b/i
+            name: 'Dairy & Chilled',
+            pattern: /\b(milk|cream|butter|cheddar|parmesan|cheese|yoghurt|yogurt|egg|eggs|mozzarella|creme fraiche|ricotta)\b/i
         },
         {
-            name: 'Structural Delivery & Pumps',
-            pattern: /\b(hose|delivery|suction|strainer|standpipe|key|bar|branch|diffuser|fog spike|pump|manifold|dividing breech|collecting breech|generator|lighting)\b/i
+            name: 'Bakery',
+            pattern: /\b(bread|roll|bun|buns|baguette|tortilla|wrap|wraps|pita|pitta|pastry|brioche|croissant)\b/i
         },
         {
-            name: 'Ladders, Heights & Lines',
-            pattern: /\b(135 ladder|9m ladder|short extension|roof ladder|harness|line|rope|carabiner|pulley|fall arrest|rigging)\b/i
+            name: 'Spices & Seasonings',
+            pattern: /\b(salt|black pepper|paprika|cumin|oregano|cinnamon|turmeric|curry powder|chili flakes|clove|nutmeg|bay leaf|seasoning)\b/i
         },
         {
-            name: 'General Stores & Consumables',
-            pattern: /\b(first aid|casualty|dummy|tarpaulin|chalk|cones|barricade|radio|torch|halogen|blanket|spill kit|absorbent|ppe|presentation|course material|props)\b/i
+            name: 'Pantry & Dry Goods',
+            pattern: /\b(rice|pasta|spaghetti|noodle|oil|olive oil|flour|sugar|stock|broth|can|tinned|chickpea|lentil|beans|soy sauce|vinegar|mustard|honey|mayo|tomato paste|coconut milk)\b/i
         }
     ];
 
-    function classifyEquipment(line) {
-        for (const cat of EQUIPMENT_CATEGORIES) {
-            if (cat.pattern.test(line)) return cat.name;
+    function classifyIngredient(line) {
+        for (const aisle of AISLE_PATTERNS) {
+            if (aisle.pattern.test(line)) return aisle.name;
         }
-        return 'General Stores & Consumables';
+        return 'Pantry & Dry Goods';
     }
 
-    function parseEquipmentString(rawStr) {
+    function parseIngredientString(rawStr) {
         const fractionMap = { '½': 0.5, '⅓': 0.333, '⅔': 0.667, '¼': 0.25, '¾': 0.75, '⅛': 0.125 };
         let str = rawStr.trim();
 
@@ -1064,7 +1062,7 @@
 
         let remainder = match[2].trim();
 
-        const unitRegex = /^(lengths?|sets?|cylinders?|drums?|rolls?|pairs?|units?|pieces?|bottles?|litres?|kg|packs?)\b\s*(.*)/i;
+        const unitRegex = /^(g|kg|ml|l|tbsp|tsp|tablespoon|tablespoons|teaspoon|teaspoons|cup|cups|oz|lb|clove|cloves|pinch|can|tinned|pot|bunch|slices?)\b\s*(.*)/i;
         const unitMatch = remainder.match(unitRegex);
 
         let unit = '';
@@ -1076,14 +1074,16 @@
         }
 
         const normalizedItem = item.toLowerCase()
-            .replace(/ies$/, 'y')
+            .replace(/tomatoes$/, 'tomato')
+            .replace(/potatoes$/, 'potato')
+            .replace(/onions$/, 'onion')
             .replace(/es$/, '')
             .replace(/s$/, '');
 
         return { qty, unit, item: normalizedItem, displayItem: item, original: rawStr };
     }
 
-    function scaleEquipmentLine(line, factor) {
+    function scaleIngredientLine(line, factor) {
         if (factor === 1) return line;
 
         const fractionMap = { '½': 0.5, '⅓': 0.333, '⅔': 0.667, '¼': 0.25, '¾': 0.75, '⅛': 0.125 };
@@ -1113,72 +1113,39 @@
         return `${scaledQty} ${match[2]}`.trim();
     }
 
-    async function loadTrainingDatabase() {
+    async function loadCookbookDatabase() {
         try {
-            let manifestRes = await fetch('Cards/cards.json');
-            if (!manifestRes.ok) {
-                manifestRes = await fetch('Cards/card.json');
-            }
-            if (!manifestRes.ok) {
-                manifestRes = await fetch('cards.json');
-            }
+            const manifestRes = await fetch('Cards/cards.json');
             if (!manifestRes.ok) throw new Error(`Manifest load failed: HTTP ${manifestRes.status}`);
-            
             const cardPaths = await manifestRes.json();
             
             const cardPromises = cardPaths.map(async itemPath => {
                 const cleanFilename = itemPath.replace(/^(\.\/)?(Cards\/)?/i, '');
-                let res = await fetch(`Cards/${cleanFilename}`);
-                if (!res.ok) {
-                    res = await fetch(cleanFilename);
-                }
+                const cardUrl = `Cards/${cleanFilename}`;
+                const res = await fetch(cardUrl);
                 if (!res.ok) return null;
                 return res.json();
             });
             
             const results = await Promise.all(cardPromises);
-            trainingDatabase = results
-                .filter(item => item !== null)
-                .map((item, idx) => {
-                    const rawEquip = item.equipment_list || item.rawEquipment || item.equipment || item.rawIngredients || [];
-                    const procedures = item.method || (item.klp || item.klps || []).map(k => `[${k.number}] ${k.performance || k.description}`);
-
-                    return {
-                        id: item.id || `drill-${idx}`,
-                        title: item.title || item.name || 'Untitled Drill',
-                        category: item.category || item.type || 'ARFF',
-                        time: parseInt(item.time || item.duration || 45, 10),
-                        rawEquipment: rawEquip,
-                        method: procedures,
-                        image: item.image || ''
-                    };
-                });
+            cookbookDatabase = results.filter(item => item !== null);
         } catch (err) {
-            console.error("Initialization error loading training plans:", err);
+            console.error("Initialization error loading recipe cards:", err);
         }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-        loadTrainingDatabase();
+        loadCookbookDatabase();
 
         if (introVideo) {
             introVideo.addEventListener('ended', dismissIntro);
-            introVideo.addEventListener('error', dismissIntro);
             
             const playPromise = introVideo.play();
             if (playPromise !== undefined) {
                 playPromise.catch(() => {
-                    dismissIntro();
+                    // Autoplay blocked by browser policy
                 });
             }
-
-            setTimeout(() => {
-                if (introOverlay && introOverlay.style.display !== 'none') {
-                    dismissIntro();
-                }
-            }, 3500);
-        } else {
-            dismissIntro();
         }
     });
 
@@ -1208,7 +1175,7 @@
     }
 
     pageCurrent.addEventListener('touchstart', e => {
-        if (e.target.closest('button') || e.target.closest('.story-card-link') || state.currentPlanIndex >= plans.length) return;
+        if (e.target.closest('button') || e.target.closest('.story-card-link') || state.currentRecipeIndex >= recipes.length) return;
         touchStartX = e.touches[0].clientX;
         touchStartY = e.touches[0].clientY;
         pageCurrent.classList.add('dragging');
@@ -1216,7 +1183,7 @@
     }, { passive: true });
 
     pageCurrent.addEventListener('touchmove', e => {
-        if (e.target.closest('button') || e.target.closest('.story-card-link') || state.currentPlanIndex >= plans.length) return;
+        if (e.target.closest('button') || e.target.closest('.story-card-link') || state.currentRecipeIndex >= recipes.length) return;
         if (!pageCurrent.classList.contains('dragging')) return;
 
         currentX = e.touches[0].clientX - touchStartX;
@@ -1229,7 +1196,7 @@
     }, { passive: true });
 
     pageCurrent.addEventListener('touchend', e => {
-        if (e.target.closest('button') || e.target.closest('.story-card-link') || state.currentPlanIndex >= plans.length) return;
+        if (e.target.closest('button') || e.target.closest('.story-card-link') || state.currentRecipeIndex >= recipes.length) return;
         if (!pageCurrent.classList.contains('dragging')) return;
 
         pageCurrent.classList.remove('dragging');
@@ -1250,7 +1217,7 @@
     }, { passive: true });
 
     function triggerSwipe(action) {
-        if (state.currentPlanIndex >= plans.length) return;
+        if (state.currentRecipeIndex >= recipes.length) return;
         
         setControlsState(true);
         resetStamps();
@@ -1273,7 +1240,7 @@
             void pageCurrent.offsetWidth;
             pageCurrent.classList.remove('dragging');
             
-            if (state.currentPlanIndex < plans.length) {
+            if (state.currentRecipeIndex < recipes.length) {
                 setControlsState(false);
             }
         }, 300);
@@ -1281,64 +1248,63 @@
 
     function processSwipeAction(action) {
         state.history.push({
-            currentPlanIndex: state.currentPlanIndex,
-            acceptedDrills: state.acceptedDrills,
-            acceptedPlans: [...state.acceptedPlans],
-            rejectedPlans: [...state.rejectedPlans],
-            rawEquipmentList: state.rawEquipmentList.map(i => ({ ...i })),
-            plans: [...plans]
+            currentRecipeIndex: state.currentRecipeIndex,
+            acceptedMeals: state.acceptedMeals,
+            acceptedRecipes: [...state.acceptedRecipes],
+            rejectedRecipes: [...state.rejectedRecipes],
+            rawIngredientsList: state.rawIngredientsList.map(i => ({ ...i })),
+            recipes: [...recipes]
         });
         updateUndoButton();
 
-        const plan = plans[state.currentPlanIndex];
+        const recipe = recipes[state.currentRecipeIndex];
         
         if (action === 'favorite') {
-            if (!favorites.find(f => f.id === plan.id)) {
-                favorites.push(plan);
-                localStorage.setItem('firePlannerFavorites', JSON.stringify(favorites));
+            if (!favorites.find(f => f.id === recipe.id)) {
+                favorites.push(recipe);
+                localStorage.setItem('bbcMealPlannerFavorites', JSON.stringify(favorites));
             }
-            state.rejectedPlans.push(plan);
+            state.rejectedRecipes.push(recipe);
         } else if (action === 'reject') {
-            state.rejectedPlans.push(plan);
+            state.rejectedRecipes.push(recipe);
         } else if (action === 'accept') {
-            state.acceptedDrills++;
-            state.acceptedPlans.push(plan);
+            state.acceptedMeals++;
+            state.acceptedRecipes.push(recipe);
             
-            const rawItems = plan.rawEquipment || [];
-            rawItems.forEach(rawEq => {
-                const parsed = parseEquipmentString(rawEq);
+            recipe.rawIngredients.forEach(rawIng => {
+                const parsed = parseIngredientString(rawIng);
                 const scaledQty = parsed.qty * config.multiplier;
                 const key = `${parsed.item}|${parsed.unit}`;
 
-                const existing = state.rawEquipmentList.find(i => i.key === key);
+                const existing = state.rawIngredientsList.find(i => i.key === key);
                 if (existing) {
                     existing.totalQty += scaledQty;
                 } else {
-                    state.rawEquipmentList.push({
+                    state.rawIngredientsList.push({
                         key: key,
                         item: parsed.item,
                         displayItem: parsed.displayItem,
                         unit: parsed.unit,
                         totalQty: scaledQty,
-                        rawFallback: rawEq
+                        rawFallback: rawIng
                     });
                 }
             });
         }
         
-        state.currentPlanIndex++;
+        state.currentRecipeIndex++;
         
-        if (state.acceptedDrills >= config.days) {
+        if (state.acceptedMeals >= config.days) {
             finalizePlan();
             return;
         }
 
-        if (state.currentPlanIndex >= plans.length) {
-            if (state.rejectedPlans.length > 0) {
-                plans = [...state.rejectedPlans];
-                plans.sort(() => Math.random() - 0.5);
-                state.rejectedPlans = [];
-                state.currentPlanIndex = 0;
+        if (state.currentRecipeIndex >= recipes.length) {
+            if (state.rejectedRecipes.length > 0) {
+                recipes = [...state.rejectedRecipes];
+                recipes.sort(() => Math.random() - 0.5);
+                state.rejectedRecipes = [];
+                state.currentRecipeIndex = 0;
             } else {
                 finalizePlan();
                 return;
@@ -1352,12 +1318,12 @@
         if (!state.history || state.history.length === 0) return;
         
         const previousState = state.history.pop();
-        state.currentPlanIndex = previousState.currentPlanIndex;
-        state.acceptedDrills = previousState.acceptedDrills;
-        state.acceptedPlans = previousState.acceptedPlans;
-        state.rejectedPlans = previousState.rejectedPlans;
-        state.rawEquipmentList = previousState.rawEquipmentList;
-        plans = previousState.plans;
+        state.currentRecipeIndex = previousState.currentRecipeIndex;
+        state.acceptedMeals = previousState.acceptedMeals;
+        state.acceptedRecipes = previousState.acceptedRecipes;
+        state.rejectedRecipes = previousState.rejectedRecipes;
+        state.rawIngredientsList = previousState.rawIngredientsList;
+        recipes = previousState.recipes;
 
         updateUndoButton();
         resetStamps();
@@ -1377,35 +1343,34 @@
     }
 
     async function startPlanning() {
-        if (trainingDatabase.length === 0) {
-            await loadTrainingDatabase();
+        if (cookbookDatabase.length === 0) {
+            await loadCookbookDatabase();
         }
 
-        if (trainingDatabase.length === 0) {
-            alert("No training drill data available. Ensure JSON files exist in the Cards directory and that a local web server is running.");
+        if (cookbookDatabase.length === 0) {
+            alert("No recipe data available. Check console network responses for cards.json and card items.");
             return;
         }
 
         config.days = parseInt(document.getElementById('days').value);
-        config.multiplier = parseFloat(document.getElementById('crew-multiplier').value) || 1;
-        config.categories = Array.from(document.querySelectorAll('#plan-categories input:checked')).map(cb => cb.value);
-        config.drillTimes = Array.from(document.querySelectorAll('#drill-time-filters input:checked')).map(cb => cb.value);
+        config.multiplier = parseFloat(document.getElementById('portion-multiplier').value) || 1;
+        config.categories = Array.from(document.querySelectorAll('#meal-categories input:checked')).map(cb => cb.value);
+        config.prepTimes = Array.from(document.querySelectorAll('#prep-time-filters input:checked')).map(cb => cb.value);
         
         if (config.categories.length === 0) {
-            alert("Select at least one training category.");
+            alert("Select at least one meal category.");
             return;
         }
 
-        if (config.drillTimes.length === 0) {
-            alert("Select at least one duration bracket.");
+        if (config.prepTimes.length === 0) {
+            alert("Select at least one prep time bracket.");
             return;
         }
 
-        const filtered = trainingDatabase.filter(r => {
-            const planCategory = r.category || 'ARFF';
-            const matchesCategory = config.categories.includes(planCategory);
+        const filtered = cookbookDatabase.filter(r => {
+            const matchesCategory = config.categories.includes(r.type);
             
-            const time = r.time || 45;
+            const time = parseInt(r.time, 10) || 0;
             let bracket = 'quick';
             if (time >= 60) {
                 bracket = 'long';
@@ -1413,12 +1378,12 @@
                 bracket = 'medium';
             }
 
-            const matchesTime = config.drillTimes.includes(bracket);
+            const matchesTime = config.prepTimes.includes(bracket);
             return matchesCategory && matchesTime;
         });
         
         if (filtered.length === 0) {
-            alert("No drills found matching the selected categories and durations.");
+            alert("No recipes found matching the selected categories and prep times.");
             return;
         }
 
@@ -1426,14 +1391,14 @@
         setControlsState(true);
 
         filtered.sort(() => Math.random() - 0.5);
-        plans = filtered;
+        recipes = filtered;
 
         state = { 
-            currentPlanIndex: 0, 
-            acceptedDrills: 0, 
-            acceptedPlans: [], 
-            rejectedPlans: [], 
-            rawEquipmentList: [],
+            currentRecipeIndex: 0, 
+            acceptedMeals: 0, 
+            acceptedRecipes: [], 
+            rejectedRecipes: [], 
+            rawIngredientsList: [],
             history: []
         };
         updateUndoButton();
@@ -1446,62 +1411,64 @@
     }
 
     function loadPages() {
-        renderPage(pageCurrent, state.currentPlanIndex, state.acceptedDrills);
-        renderPage(pageNext, state.currentPlanIndex + 1, state.acceptedDrills);
+        renderPage(pageCurrent, state.currentRecipeIndex, state.acceptedMeals);
+        renderPage(pageNext, state.currentRecipeIndex + 1, state.acceptedMeals);
     }
 
     function renderPage(pageEl, index, acceptedCount) {
-        if (index >= plans.length) {
+        if (index >= recipes.length) {
             pageEl.style.display = 'none';
             return;
         }
 
         pageEl.style.display = 'flex';
-        const plan = plans[index];
+        const recipe = recipes[index];
 
-        const imgEl = pageEl.querySelector('.plan-image');
-        if (imgEl) imgEl.src = plan.image || '';
+        const imgEl = pageEl.querySelector('.recipe-image');
+        if (imgEl) imgEl.src = recipe.image || '';
 
-        const thumbEl = pageEl.querySelector('.plan-image-thumb');
-        if (thumbEl) thumbEl.src = plan.image || '';
+        const thumbEl = pageEl.querySelector('.recipe-image-thumb');
+        if (thumbEl) thumbEl.src = recipe.image || '';
 
-        const titleEl = pageEl.querySelector('.plan-title');
-        if (titleEl) titleEl.innerText = plan.title;
+        const titleEl = pageEl.querySelector('.recipe-title');
+        if (titleEl) titleEl.innerText = recipe.title || 'Untitled Recipe';
 
-        const timeEl = pageEl.querySelector('.plan-time');
-        if (timeEl) timeEl.innerText = `${plan.time} mins`;
+        const timeEl = pageEl.querySelector('.recipe-time');
+        if (timeEl) timeEl.innerText = `${recipe.time || '--'} mins`;
 
-        const tagEl = pageEl.querySelector('.plan-tag');
-        if (tagEl) tagEl.innerText = plan.category;
+        const tagEl = pageEl.querySelector('.meal-tag');
+        if (tagEl) tagEl.innerText = recipe.type || 'Meal';
 
-        const progressEl = pageEl.querySelector('.plan-progress');
+        const progressEl = pageEl.querySelector('.recipe-progress');
         if (progressEl) {
             progressEl.innerText = `${acceptedCount}/${config.days}`;
         }
 
-        const subHeadline = pageEl.querySelector('.plan-sub-headline');
-        if (subHeadline) subHeadline.innerText = plan.title;
+        const subHeadline = pageEl.querySelector('.recipe-sub-headline');
+        if (subHeadline) subHeadline.innerText = recipe.title || 'View Ingredients & Steps';
     }
 
     function finalizePlan() {
-        const agendaContainer = document.getElementById('training-agenda');
+        const agendaContainer = document.getElementById('meal-agenda');
         agendaContainer.innerHTML = '';
         
-        state.acceptedPlans.forEach(plan => {
+        state.acceptedRecipes.forEach(recipe => {
             const li = document.createElement('li');
-            li.innerHTML = `<span><strong>${plan.title}</strong></span> <span style="color:var(--mg-accent); font-size:12px;">${plan.category}</span>`;
+            li.innerHTML = `<span><strong>${recipe.title}</strong></span> <span style="color:var(--mg-accent); font-size:12px;">${recipe.type}</span>`;
             agendaContainer.appendChild(li);
         });
 
-        const groupedContainer = document.getElementById('equipment-list-grouped');
+        const groupedContainer = document.getElementById('shopping-list-grouped');
         groupedContainer.innerHTML = '';
 
-        const categoryBuckets = {};
+        const aisleBuckets = {};
 
-        state.rawEquipmentList.forEach(entry => {
+        state.rawIngredientsList.forEach(entry => {
             let label = entry.item;
             if (entry.totalQty > 1 && !entry.unit) {
-                if (label.endsWith('y')) label = label.slice(0, -1) + 'ies';
+                if (label.endsWith('tomato')) label += 'es';
+                else if (label.endsWith('potato')) label += 'es';
+                else if (label.endsWith('onion')) label += 's';
                 else if (!label.endsWith('s')) label += 's';
             }
 
@@ -1509,20 +1476,20 @@
                 ? `${Math.round(entry.totalQty * 100) / 100} ${entry.unit ? entry.unit + ' ' : ''}${label}`.trim()
                 : entry.rawFallback;
 
-            const department = classifyEquipment(entry.item || entry.rawFallback);
-            if (!categoryBuckets[department]) categoryBuckets[department] = [];
-            categoryBuckets[department].push(lineText);
+            const department = classifyIngredient(entry.item || entry.rawFallback);
+            if (!aisleBuckets[department]) aisleBuckets[department] = [];
+            aisleBuckets[department].push(lineText);
         });
 
-        const sortedCategories = Object.keys(categoryBuckets).sort();
-        sortedCategories.forEach(categoryName => {
+        const sortedAisles = Object.keys(aisleBuckets).sort();
+        sortedAisles.forEach(aisleName => {
             const header = document.createElement('div');
-            header.className = 'category-title';
-            header.innerText = categoryName;
+            header.className = 'aisle-title';
+            header.innerText = aisleName;
             groupedContainer.appendChild(header);
 
             const ul = document.createElement('ul');
-            categoryBuckets[categoryName].sort((a, b) => a.localeCompare(b)).forEach(text => {
+            aisleBuckets[aisleName].sort((a, b) => a.localeCompare(b)).forEach(text => {
                 const li = document.createElement('li');
                 li.innerHTML = `<span>${text}</span>`;
                 ul.appendChild(li);
@@ -1538,8 +1505,8 @@
     }
 
     function exportToCalendar() {
-        if (!state.acceptedPlans || state.acceptedPlans.length === 0) {
-            alert("No training drills selected to export.");
+        if (!state.acceptedRecipes || state.acceptedRecipes.length === 0) {
+            alert("No meals selected to export.");
             return;
         }
 
@@ -1563,7 +1530,7 @@
         let icsContent = [
             'BEGIN:VCALENDAR',
             'VERSION:2.0',
-            'PRODID:-//Fire and Rescue Training Planner//EN',
+            'PRODID:-//Easy Meal Planner//EN',
             'CALSCALE:GREGORIAN',
             'METHOD:PUBLISH'
         ];
@@ -1571,33 +1538,32 @@
         const startDate = new Date();
         startDate.setDate(startDate.getDate() + 1);
 
-        state.acceptedPlans.forEach((plan, index) => {
+        state.acceptedRecipes.forEach((recipe, index) => {
             const eventDate = new Date(startDate);
             eventDate.setDate(startDate.getDate() + index);
             eventDate.setHours(18, 0, 0, 0);
 
-            const drillDurationMins = plan.time || 45;
-            const endDate = new Date(eventDate.getTime() + drillDurationMins * 60 * 1000);
+            const cookDurationMins = parseInt(recipe.time, 10) || 60;
+            const endDate = new Date(eventDate.getTime() + cookDurationMins * 60 * 1000);
 
-            const uid = `drill-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}@fireplanner.local`;
+            const uid = `meal-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}@mealplanner.local`;
 
-            const rawItems = plan.rawEquipment || [];
-            const equipment = rawItems
-                .map(eq => `• ${scaleEquipmentLine(eq, config.multiplier)}`)
+            const ingredients = (recipe.rawIngredients || [])
+                .map(ing => `• ${scaleIngredientLine(ing, config.multiplier)}`)
                 .join('\n');
 
-            const procedureText = (plan.method && plan.method.length > 0)
-                ? plan.method.map((step, i) => `${i + 1}. ${step}`).join('\n')
-                : '';
+            const method = (recipe.method || [])
+                .map((step, i) => `${i + 1}. ${step}`)
+                .join('\n');
 
-            const description = `DRILL DURATION: ${drillDurationMins} mins\nCATEGORY: ${plan.category}\nCREW SCALE: ${config.multiplier}x\n\nREQUIRED EQUIPMENT & STORES:\n${equipment}\n\nKEY LEARNING POINTS & PROCEDURES:\n${procedureText}`;
+            const description = `COOK TIME: ${recipe.time || '--'} mins\nTYPE: ${recipe.type || 'Main'}\nPORTIONS: ${config.multiplier}x\n\nINGREDIENTS:\n${ingredients}\n\nMETHOD:\n${method}`;
 
             icsContent.push('BEGIN:VEVENT');
             icsContent.push(`UID:${uid}`);
             icsContent.push(`DTSTAMP:${dtstamp}`);
             icsContent.push(`DTSTART:${formatICSDate(eventDate)}`);
             icsContent.push(`DTEND:${formatICSDate(endDate)}`);
-            icsContent.push(`SUMMARY:${escapeICS(`Drill: [${plan.category}] ${plan.title}`)}`);
+            icsContent.push(`SUMMARY:${escapeICS(`Dinner: ${recipe.title}`)}`);
             icsContent.push(`DESCRIPTION:${escapeICS(description)}`);
             icsContent.push('STATUS:CONFIRMED');
             icsContent.push('END:VEVENT');
@@ -1608,7 +1574,7 @@
         const blob = new Blob([icsContent.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
         const link = document.createElement('a');
         link.href = URL.createObjectURL(blob);
-        link.download = `Training_Schedule_${new Date().toISOString().slice(0, 10)}.ics`;
+        link.download = `Meal_Plan_${new Date().toISOString().slice(0, 10)}.ics`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -1616,18 +1582,18 @@
     }
 
     function savePlan() {
-        const planData = {
+        const plan = {
             date: new Date().toISOString(),
             multiplier: config.multiplier,
-            agenda: state.acceptedPlans,
-            equipmentList: state.rawEquipmentList
+            agenda: state.acceptedRecipes,
+            shoppingList: state.rawIngredientsList
         };
         
-        let savedPlans = JSON.parse(localStorage.getItem('firePlannerSavedPlans')) || [];
-        savedPlans.push(planData);
-        localStorage.setItem('firePlannerSavedPlans', JSON.stringify(savedPlans));
+        let savedPlans = JSON.parse(localStorage.getItem('bbcMealPlannerSavedPlans')) || [];
+        savedPlans.push(plan);
+        localStorage.setItem('bbcMealPlannerSavedPlans', JSON.stringify(savedPlans));
         
-        alert("Training schedule saved successfully!");
+        alert("Weekly plan saved successfully!");
     }
 
     function viewFavorites() {
@@ -1635,14 +1601,14 @@
         listContainer.innerHTML = '';
 
         if (favorites.length === 0) {
-            listContainer.innerHTML = '<li>No priority drills saved.</li>';
+            listContainer.innerHTML = '<li>No favorites saved.</li>';
         } else {
             favorites.forEach(fav => {
                 const li = document.createElement('li');
                 li.className = 'favorite-item';
                 li.innerHTML = `
                     <div>
-                        <img src="${fav.image || ''}" alt="img">
+                        <img src="${fav.image}" alt="img">
                         <span>${fav.title}</span>
                     </div>
                 `;
@@ -1657,46 +1623,33 @@
         switchScreen('setup-screen');
     }
 
-    function showPlanInfo() {
-        if (state.currentPlanIndex >= plans.length) return;
-        const plan = plans[state.currentPlanIndex];
+    function showRecipeInfo() {
+        if (state.currentRecipeIndex >= recipes.length) return;
+        const recipe = recipes[state.currentRecipeIndex];
         
-        document.getElementById('modal-title').innerText = plan.title;
+        document.getElementById('modal-title').innerText = recipe.title;
         
-        const eqList = document.getElementById('modal-equipment');
-        eqList.innerHTML = '';
-        const rawItems = plan.rawEquipment || [];
-        if (rawItems.length === 0) {
+        const ingList = document.getElementById('modal-ingredients');
+        ingList.innerHTML = '';
+        recipe.rawIngredients.forEach(ing => {
             const li = document.createElement('li');
-            li.innerText = "No specific stores required.";
-            eqList.appendChild(li);
-        } else {
-            rawItems.forEach(eq => {
-                const li = document.createElement('li');
-                li.innerText = scaleEquipmentLine(eq, config.multiplier);
-                eqList.appendChild(li);
-            });
-        }
+            li.innerText = scaleIngredientLine(ing, config.multiplier);
+            ingList.appendChild(li);
+        });
 
         const methodList = document.getElementById('modal-method');
         methodList.innerHTML = '';
-        if (plan.method && plan.method.length > 0) {
-            plan.method.forEach(step => {
-                const li = document.createElement('li');
-                li.innerText = step;
-                methodList.appendChild(li);
-            });
-        } else {
+        recipe.method.forEach(step => {
             const li = document.createElement('li');
-            li.innerText = "Standard operating briefing applies.";
+            li.innerText = step;
             methodList.appendChild(li);
-        }
+        });
 
         updateWakeLockUI();
         document.getElementById('info-modal').style.display = 'block';
     }
 
-    async function closePlanInfo() {
+    async function closeRecipeInfo() {
         if (wakeLockSentinel) {
             try {
                 await wakeLockSentinel.release();
@@ -1755,15 +1708,15 @@
         if (e.code === 'Space') {
             e.preventDefault();
             if (modalOpen) {
-                closePlanInfo();
+                closeRecipeInfo();
             } else if (swipeActive) {
-                showPlanInfo();
+                showRecipeInfo();
             }
             return;
         }
 
         if (e.key === 'Escape' && modalOpen) {
-            closePlanInfo();
+            closeRecipeInfo();
             return;
         }
 
